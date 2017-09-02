@@ -1,6 +1,7 @@
 /*
-    common_handlers.c -- Implementation of common callback handling and signal handling
-                            functions for black box tests
+    node_sim.c -- Implementation of Node Simulation for Meshlink Testing
+                    for meta connection test case 01 - re-connection of
+                    two nodes when relay node goes down
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -19,31 +20,26 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <stdio.h>
-#include <signal.h>
-#include "node_sim.h"
-#include "test_step.h"
+#include <stdlib.h>
+#include "../common/node_sim.h"
+#include "../common/common_handlers.h"
+#include "../common/test_step.h"
 
-void mesh_close_signal_handler(int a) {
-    execute_close();
-}
+#define CMD_LINE_ARG_NODENAME   1
+#define CMD_LINE_ARG_DEVCLASS   2
+#define CMD_LINE_ARG_INVITEURL  3
 
-void mesh_stop_start_signal_handler(int a) {
-    /* Stop the Mesh if it is running, otherwise start it again */
-    (mesh_started) ? execute_stop() : execute_start();
+int main(int argc, char *argv[]) {
+    struct timeval main_loop_wait = { 5000, 0 };
 
-    return;
-}
+    /* Setup required signals */
+    setup_signals();
 
-void setup_signals(void) {
-    signal(SIGTERM, mesh_close_signal_handler);
-    signal(SIGINT, mesh_stop_start_signal_handler);
+    /* Execute test steps */
+    execute_open(argv[CMD_LINE_ARG_NODENAME], argv[CMD_LINE_ARG_DEVCLASS]);
+    execute_start();
 
-    return;
-}
-
-void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
-                                      const char *text) {
-    fprintf(stderr, "meshlink>> %s\n", text);
-
-    return;
+    /* All test steps executed - wait for signals to stop/start or close the mesh */
+    while (1)
+        select(1, NULL, NULL, NULL, &main_loop_wait);
 }

@@ -1,5 +1,5 @@
 /*
-    mesh_simulate_node.h -- Global Declarations
+    gen_invite.c -- Black Box Test Utility to generate a meshlink invite
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -17,16 +17,26 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-
-#ifndef MESH_SIMULATE_NODE_H
-#define MESH_SIMULATE_NODE_H
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <meshlink/meshlink.h>
+#include "../common/test_step.h"
 
-/* Meshlink Mesh Handle */
-extern meshlink_handle_t *mesh_handle;
+#define CMD_LINE_ARG_NODENAME   1
+#define CMD_LINE_ARG_INVITEE    2
 
-/* Flag to indicate if Mesh is running */
-extern bool mesh_started;
+int main(int argc, char *argv[]) {
+    char *invite = NULL;
+    meshlink_handle_t *mesh_handle = NULL;
 
-#endif // MESHLINK_INTERNAL_H
+    /* Start mesh, generate an invite and print out the invite */
+    mesh_handle = execute_open(argv[CMD_LINE_ARG_NODENAME], "1");
+    execute_start();
+    invite = meshlink_invite(mesh_handle, argv[CMD_LINE_ARG_INVITEE]);
+    fprintf(stderr, "meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
+    assert(invite);
+    printf("%s\n", invite);
+
+    return EXIT_SUCCESS;
+}

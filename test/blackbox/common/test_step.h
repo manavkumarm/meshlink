@@ -21,7 +21,7 @@
 #ifndef TEST_STEP_H
 #define TEST_STEP_H
 
-void execute_open(char *node_name, char *dev_class);
+meshlink_handle_t *execute_open(char *node_name, char *dev_class);
 void execute_join(char *invite_url);
 void execute_start(void);
 void execute_stop(void);
