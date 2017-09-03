@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <meshlink/meshlink.h>
+#include "../../../src/meshlink.h"
 #include "../common/test_step.h"
 
 #define CMD_LINE_ARG_NODENAME   1

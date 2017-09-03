@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <meshlink/meshlink.h>
+#include "../../../src/meshlink.h"
 #include "test_step.h"
 #include "common_handlers.h"
 #include "../common/node_sim.h"

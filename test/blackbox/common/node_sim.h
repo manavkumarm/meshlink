@@ -21,7 +21,7 @@
 #ifndef MESH_SIMULATE_NODE_H
 #define MESH_SIMULATE_NODE_H
 
-#include <meshlink/meshlink.h>
+#include "../../../src/meshlink.h"
 
 /* Meshlink Mesh Handle */
 extern meshlink_handle_t *mesh_handle;
