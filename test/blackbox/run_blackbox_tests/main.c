@@ -1,0 +1,40 @@
+/*
+    run_blackbox_tests.c -- Implementation of Black Box Test Execution for meshlink
+    Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
+                        Manav Kumar Mehta <manavkumarm@yahoo.com>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+#include <stdlib.h>
+#include <stdarg.h>
+#include <setjmp.h>
+#include <cmocka.h>
+#include <stdio.h>
+#include "../common/test_step.h"
+
+int main(int argc, char * argv[]) {
+    char *invite_url = NULL;
+
+    execute_open(NUT_NODE_NAME, "1");
+    invite_url = execute_invite(NUT_NODE_NAME, "peer");
+
+    /*const struct CMUnitTest blackbox_tests[] = {
+        cmocka_unit_test(utest_create_list_01)
+    };
+
+    return cmocka_run_group_tests(group3Tests, utest_remove_from_list_group3_setup,
+        utest_remove_from_list_group3_teardown);*/
+    return EXIT_SUCCESS;
+}
