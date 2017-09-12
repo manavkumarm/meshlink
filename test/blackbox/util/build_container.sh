@@ -19,11 +19,6 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# Function to print command on terminal before executing it
-#   This is preferable to set -x before it causes a double echo
-#   of the same command when run with eval
-evalx() { echo "Command: $@"; eval $@; }
-
 # Read command-line arguments
 testcase=$1
 nodename=$2
@@ -55,32 +50,35 @@ lxcrunscript="lxc_run.sh"
 #   Container Name
 containername="${testcase}_${nodename}"
 
-
 # Run Libtool Wrapper Scripts once in their built paths in order to generate lt-<program> script inside .libs directory
-evalx "${blackboxpath}/${geninvitepgm} >/dev/null 2>/dev/null"
-evalx "${testcasepath}/${nodesimpgm} >/dev/null 2>/dev/null"
+${blackboxpath}/${geninvitepgm} >/dev/null 2>/dev/null
+${testcasepath}/${nodesimpgm} >/dev/null 2>/dev/null
+
+set -x
 
 # Create Meshlink Container Mirror Folder (Delete any existing folder before creating new folder)
-evalx "rm -rf ${mirrorfolderpath} >/dev/null 2>/dev/null"
-evalx "mkdir ${mirrorfolderpath}"
+rm -rf ${mirrorfolderpath} >/dev/null 2>/dev/null
+mkdir ${mirrorfolderpath}
 
 # Populate Mirror Folder
 #   Copy Wrapper Scripts for Utility Programs
-evalx "cp ${blackboxpath}/${geninvitepgm} ${mirrorfolderpath}"
-evalx "cp ${testcasepath}/${nodesimpgm} ${mirrorfolderpath}"
+cp ${blackboxpath}/${geninvitepgm} ${mirrorfolderpath}
+cp ${testcasepath}/${nodesimpgm} ${mirrorfolderpath}
 #   Copy Utility Scripts
-evalx "cp ${blackboxutilpath}/${nodestepscript} ${mirrorfolderpath}"
+cp ${blackboxutilpath}/${nodestepscript} ${mirrorfolderpath}
 #    Set Script Permissions
-evalx "chmod 755 ${mirrorfolderpath}/*"
+chmod 755 ${mirrorfolderpath}/*
 #   Copy Binaries, lt- Scripts and Required Libraries
-evalx "mkdir ${mirrorfolderlibpath}"
-evalx "cp ${blackboxlibpath}/* ${mirrorfolderlibpath}"
-evalx "cp ${testcaselibpath}/*${nodesimpgm}* ${mirrorfolderlibpath}"
-evalx "cp ${meshlinksrclibpath}/* ${mirrorfolderlibpath}"
-evalx "cp ${cattasrclibpath}/* ${mirrorfolderlibpath}"
+mkdir ${mirrorfolderlibpath}
+cp ${blackboxlibpath}/* ${mirrorfolderlibpath}
+cp ${testcaselibpath}/*${nodesimpgm}* ${mirrorfolderlibpath}
+cp ${meshlinksrclibpath}/* ${mirrorfolderlibpath}
+cp ${cattasrclibpath}/* ${mirrorfolderlibpath}
 
 # Copy mirror folder into LXC Container
 #   Delete Destination Folder
-evalx "${blackboxutilpath}/${lxcrunscript} \"rm -rf ${containerdstpath}\" ${containername}"
+${blackboxutilpath}/${lxcrunscript} "rm -rf ${containerdstpath}" ${containername}
 #   Create Destination Folder and Copy Files
-evalx "${blackboxutilpath}/${lxccopydirscript} ${mirrorfolderpath} ${containername} ${containerdstpath}"
+${blackboxutilpath}/${lxccopydirscript} ${mirrorfolderpath} ${containername} ${containerdstpath}
+
+set +x

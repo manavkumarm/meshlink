@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "../../../src/meshlink.h"
 #include "test_step.h"
 #include "common_handlers.h"
@@ -42,6 +43,23 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
     meshlink_set_log_cb(mesh_handle, MESHLINK_INFO, meshlink_callback_logger);
 
     return mesh_handle;
+}
+
+char *execute_invite(char *inviter, char *invitee) {
+    char *invite_url = NULL;
+
+    /* If the inviting node is the Node Under Test, generate an invite
+        from the currently running mesh, otherwise run the invite generation
+        program inside the Container running the inviting node */
+    if (strcmp(inviter, NUT_NODE_NAME) == 0) {
+        invite_url = meshlink_invite(mesh_handle, invitee);
+        fprintf(stderr, "meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
+        assert(invite_url);
+    } else {
+        // Run invite generation program inside inviter's Container
+    }
+
+    return invite_url;
 }
 
 void execute_join(char *invite_url) {

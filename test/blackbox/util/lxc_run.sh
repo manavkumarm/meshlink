@@ -22,6 +22,5 @@ cmd=$1
 containername=$2
 
 # Run command inside Container by attaching to the Container and sending it the command
-containercmd="echo \"$cmd\" | lxc-attach -n $containername"
-eval $containercmd
+echo "${cmd}" | lxc-attach -n ${containername}
 exit $?
