@@ -22,13 +22,16 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <stdio.h>
+#include <assert.h>
 #include "../common/test_step.h"
+#include "../common/containers.h"
 
 int main(int argc, char * argv[]) {
-    char *invite_url = NULL;
+    //char *nodes[] = { "peer", "relay" };
 
+    //create_containers(nodes, 2);
     execute_open(NUT_NODE_NAME, "1");
-    invite_url = execute_invite(NUT_NODE_NAME, "peer");
+    execute_invite("relay", "peer", NULL);
 
     /*const struct CMUnitTest blackbox_tests[] = {
         cmocka_unit_test(utest_create_list_01)

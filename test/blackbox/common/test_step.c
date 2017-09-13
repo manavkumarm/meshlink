@@ -26,6 +26,7 @@
 #include "test_step.h"
 #include "common_handlers.h"
 #include "../common/node_sim.h"
+#include "../common/containers.h"
 
 meshlink_handle_t *mesh_handle = NULL;
 bool mesh_started = false;
@@ -45,8 +46,11 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
     return mesh_handle;
 }
 
-char *execute_invite(char *inviter, char *invitee) {
+char *execute_invite(char *inviter, char *invitee, char *test_case) {
     char *invite_url = NULL;
+    char container_name[100];
+    struct lxc_container *invite_container;
+    char *invite_gen_argv[] = { "relay", "peer" };
 
     /* If the inviting node is the Node Under Test, generate an invite
         from the currently running mesh, otherwise run the invite generation
@@ -57,6 +61,9 @@ char *execute_invite(char *inviter, char *invitee) {
         assert(invite_url);
     } else {
         // Run invite generation program inside inviter's Container
+        assert(invite_container = find_container(inviter));
+        fprintf(stderr, "Running gen_invite in container '%s'", invite_container->name);
+        invite_container->attach_run_wait();
     }
 
     return invite_url;
