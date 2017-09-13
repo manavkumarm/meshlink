@@ -27,30 +27,36 @@
 #include "common_handlers.h"
 #include "../common/node_sim.h"
 #include "../common/containers.h"
+#include "../run_blackbox_tests/run_blackbox_tests.h"
 
 meshlink_handle_t *mesh_handle = NULL;
 bool mesh_started = false;
 
 meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
     /* Set up logging for Meshlink */
-    meshlink_set_log_cb(NULL, MESHLINK_INFO, meshlink_callback_logger);
+    meshlink_set_log_cb(NULL, MESHLINK_DEBUG, meshlink_callback_logger);
+
+    /* Delete the meshlink confbase folder if it already exists */
+    assert(system("rm -rf testconf") == 0);
 
     /* Create meshlink instance */
+    fprintf(stderr, "meshlink_open with node name %s, dev class %d\n", node_name,
+        atoi(dev_class));
     mesh_handle = meshlink_open("testconf", node_name, "node_sim", atoi(dev_class));
     fprintf(stderr, "meshlink_open status: %s\n", meshlink_strerror(meshlink_errno));
     assert(mesh_handle);
 
     /* Set up logging for Meshlink with the newly acquired Mesh Handle */
-    meshlink_set_log_cb(mesh_handle, MESHLINK_INFO, meshlink_callback_logger);
+    meshlink_set_log_cb(mesh_handle, MESHLINK_DEBUG, meshlink_callback_logger);
 
     return mesh_handle;
 }
 
 char *execute_invite(char *inviter, char *invitee, char *test_case) {
     char *invite_url = NULL;
-    char container_name[100];
+    char invite_command[200];
+    int invite_status;
     struct lxc_container *invite_container;
-    char *invite_gen_argv[] = { "relay", "peer" };
 
     /* If the inviting node is the Node Under Test, generate an invite
         from the currently running mesh, otherwise run the invite generation
@@ -62,8 +68,14 @@ char *execute_invite(char *inviter, char *invitee, char *test_case) {
     } else {
         // Run invite generation program inside inviter's Container
         assert(invite_container = find_container(inviter));
-        fprintf(stderr, "Running gen_invite in container '%s'", invite_container->name);
-        invite_container->attach_run_wait();
+        assert(snprintf(invite_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT
+            " \"LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/gen_invite %s %s\" %s",
+            meshlink_root_path, inviter, invitee, invite_container->name));
+        fprintf(stderr, "Invite Command: %s\n", invite_command);
+        invite_status = system(invite_command);
+        fprintf(stderr, "LXC Attach Status in Container '%s' (gen_invite): %d\n",
+            invite_container->name, invite_status);
+        assert(invite_status == 0);
     }
 
     return invite_url;

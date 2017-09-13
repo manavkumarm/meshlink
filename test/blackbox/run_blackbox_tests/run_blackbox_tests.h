@@ -1,5 +1,5 @@
 /*
-    run_blackbox_tests.c -- Implementation of Black Box Test Execution for meshlink
+    run_blackbox_tests.h -- Common Declarations for Black Box Test Driver Program
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -17,27 +17,22 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <stdlib.h>
-#include <stdarg.h>
-#include <setjmp.h>
-#include <cmocka.h>
-#include <stdio.h>
-#include <assert.h>
-#include "../common/test_step.h"
-#include "../common/containers.h"
 
-int main(int argc, char * argv[]) {
-    //char *nodes[] = { "peer", "relay" };
+#ifndef RUN_BLACKBOX_TESTS_H
+#define RUN_BLACKBOX_TESTS_H
 
-    //create_containers(nodes, 2);
-    execute_open(NUT_NODE_NAME, "1");
-    execute_invite("relay", "peer", NULL);
+typedef struct black_box_state {
+    char *test_case_name;
+    char **node_names;
+    int num_nodes;
+    bool test_result;
+} black_box_state_t;
 
-    /*const struct CMUnitTest blackbox_tests[] = {
-        cmocka_unit_test(utest_create_list_01)
-    };
+#define LXC_UTIL_REL_PATH "test/blackbox/util"
+#define LXC_RENAME_SCRIPT "lxc_rename.sh"
+#define LXC_RUN_SCRIPT "lxc_run.sh"
+#define LXC_BUILD_SCRIPT "build_container.sh"
 
-    return cmocka_run_group_tests(group3Tests, utest_remove_from_list_group3_setup,
-        utest_remove_from_list_group3_teardown);*/
-    return EXIT_SUCCESS;
-}
+extern char *meshlink_root_path;
+
+#endif // RUN_BLACKBOX_TESTS_H

@@ -137,6 +137,7 @@ AC_CONFIG_FILES([Makefile \
 		m4/Makefile \
 		test/Makefile \
 		test/blackbox/Makefile \
+		test/blackbox/run_blackbox_tests/Makefile \
 		test/blackbox/test_case_meta_conn_01/Makefile \
 		examples/Makefile])
 

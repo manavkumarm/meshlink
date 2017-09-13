@@ -266,6 +266,7 @@ static char *get_my_hostname(meshlink_handle_t *mesh) {
 	// Use first Address statement in own host config file
 	snprintf(filename, sizeof(filename), "%s" SLASH "hosts" SLASH "%s", mesh->confbase, name);
 	scan_for_hostname(filename, &hostname, &port);
+	logger(NULL, MESHLINK_DEBUG, "hostname %s port %s found in %s", hostname, port, filename);
 
 	if(hostname)
 		goto done;

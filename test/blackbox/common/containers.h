@@ -25,5 +25,7 @@
 
 void create_containers(char *node_names[], int num_nodes);
 struct lxc_container *find_container(char *container_name);
+void setup_containers(void **state);
+void destroy_containers(void);
 
 #endif // CONTAINERS_H
