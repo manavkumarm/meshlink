@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include "containers.h"
 #include "../run_blackbox_tests/run_blackbox_tests.h"
 
@@ -33,9 +34,9 @@ void create_containers(char *node_names[], int num_nodes) {
     int create_status, snapshot_status, snap_restore_status;
 
     fprintf(stderr, "Creating Containers\n");
-    for (i = 0; i < num_nodes; i++) {
+    for(i = 0; i < num_nodes; i++) {
         assert(snprintf(container_name, 100, "run_%s", node_names[i]) >= 0);
-        if (i == 0) {
+        if(i == 0) {
             assert(first_container = lxc_container_new(container_name, NULL));
             assert(!first_container->is_defined(first_container));
             create_status = first_container->createl(first_container, "download", NULL, NULL,
@@ -62,12 +63,15 @@ struct lxc_container *find_container(char *node_name) {
     struct lxc_container **test_containers;
     char **container_names;
     int num_containers, i;
+    char *last_underscore;
 
     num_containers = list_all_containers(lxc_path, &container_names, &test_containers);
     assert(num_containers != -1);
 
-    for (i = 0; i < num_containers; i++)
-        if (strstr(container_names[i], node_name))
+    for(i = 0; i < num_containers; i++)
+        if(strstr(container_names[i], "run_") &&
+                (last_underscore = strrchr(container_names[i], '_')) &&
+                strcmp(last_underscore + 1, node_name) == 0)
             return test_containers[i];
 
     return NULL;
@@ -80,15 +84,20 @@ void setup_containers(void **state) {
     char rename_command[200], build_command[200];
     struct lxc_container *test_container;
     int rename_status, build_status;
+    char *ip = malloc(20);
+    bool ip_found;
+    FILE *lxcls_fp;
+    char lxcls_command[200];
+    size_t ip_len = sizeof(ip);
 
-    for (i = 0; i < test_state->num_nodes; i++) {
+    for(i = 0; i < test_state->num_nodes; i++) {
         /* Locate the Container */
         assert(test_container = find_container(test_state->node_names[i]));
 
         /* Rename the Container to make it specific to this test case */
         assert(snprintf(rename_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RENAME_SCRIPT
             " %s %s run_%s_%s", meshlink_root_path, lxc_path, test_container->name,
-            test_state->test_case_name, test_state->node_names[i]));
+            test_state->test_case_name, test_state->node_names[i]) >= 0);
         fprintf(stderr, "Container '%s' rename status: ", test_container->name);
         rename_status = system(rename_command);
         fprintf(stderr, "%d\n", rename_status);
@@ -97,15 +106,32 @@ void setup_containers(void **state) {
         /* Find the Container again and start the Container */
         assert(test_container = find_container(test_state->node_names[i]));
         assert(test_container->start(test_container, 0, NULL));
+        /* Wait for Container to acquire an IP Address */
+        assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
+            test_container->name) >= 0);
+        fprintf(stderr, "Waiting for Container '%s' to acquire IP", test_container->name);
+        ip_found = false;
+        while (!ip_found) {
+            assert(lxcls_fp = popen(lxcls_command, "r"));
+            assert(getline((char **)&ip, &ip_len, lxcls_fp) != -1);
+            ip[strlen(ip) - 1] = '\0';
+            ip_found = (strcmp(ip, "-") != 0);
+            assert(pclose(lxcls_fp) != -1);
+            fprintf(stderr, ".");
+            sleep(1);
+        }
+        fprintf(stderr, "\n");
+
         /* Build the Container by copying required files into it */
         assert(snprintf(build_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_BUILD_SCRIPT
             " %s %s %s +x >/dev/null", meshlink_root_path, test_state->test_case_name,
             test_state->node_names[i], meshlink_root_path));
         build_status = system(build_command);
-        fprintf(stderr, "Container '%s' Build Status: %d\n", test_container->name, build_status);
+        fprintf(stderr, "Container '%s' build Status: %d\n", test_container->name, build_status);
         assert(build_status == 0);
     }
 
+    free(ip);
     return;
 }
 
@@ -118,10 +144,9 @@ void destroy_containers(void) {
     num_containers = list_all_containers(lxc_path, &container_names, &test_containers);
     assert(num_containers != -1);
 
-    fprintf(stderr, "Destroying Containers if any\n");
-
-    for (i = 0; i < num_containers; i++) {
-        if (strstr(container_names[i], "run_")) {
+    for(i = 0; i < num_containers; i++) {
+        if(strstr(container_names[i], "run_")) {
+            fprintf(stderr, "Shutdown and Destroy '%s'\n", container_names[i]);
             test_containers[i]->shutdown(test_containers[i], 5);
             test_containers[i]->destroy(test_containers[i]);
             test_containers[i]->destroy_with_snapshots(test_containers[i]);
@@ -131,3 +156,32 @@ void destroy_containers(void) {
     return;
 }
 
+/* Run 'cmd' inside the Container created for 'node' and return the first line of the output */
+char *run_in_container(char *cmd, char *node) {
+    char attach_command[400];
+    struct lxc_container *container;
+    FILE *attach_fp;
+    char *output = malloc(100);
+    size_t output_len = sizeof(output);
+
+    assert(container = find_container(node));
+    assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT " \"%s\" %s",
+        meshlink_root_path, cmd, container->name));
+    assert(attach_fp = popen(attach_command, "r"));
+    assert(getline(&output, &output_len, attach_fp) != -1);
+    output[strlen(output) - 1] = '\0';  // Strip out trailing newline
+    assert(pclose(attach_fp) != -1);
+
+    return output;
+}
+
+char *invite_in_container(char *inviter, char *invitee) {
+    char invite_command[200];
+
+    assert(snprintf(invite_command, 200,
+        "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/gen_invite %s %s "
+        "2>gen_invite.log", inviter, invitee));
+    fprintf(stderr, "Generating Invite from '%s' to '%s'\n", inviter, invitee);
+
+    return run_in_container(invite_command, inviter);
+}

@@ -30,20 +30,21 @@
 char *meshlink_root_path = "/home/manavkumarm/meshlink";
 
 int main(int argc, char *argv[]) {
-    char *nodes[] = { "peer", "relay" };
+    char *nodes[] = { "peer", "relay", "peer2" };
     black_box_state_t test_case_1_state = {
         /* test_case_name = */ "test_case_meta_conn_01",
         /* node_names = */ nodes,
-        /* num_nodes = */ 2,
+        /* num_nodes = */ 3,
         /* test_result (defaulted to) = */ false
     };
     black_box_state_t *state_ptr = &test_case_1_state;
 
     destroy_containers();
-    create_containers(nodes, 2);
+    create_containers(nodes, 3);
     setup_containers((void **)&state_ptr);
     execute_open(NUT_NODE_NAME, "1");
-    execute_invite("relay", "peer", NULL);
+    fprintf(stderr, "Invite Generated from 'relay' to 'peer': %s\n",
+        invite_in_container("relay", "peer"));
     destroy_containers();
 
     /*const struct CMUnitTest blackbox_tests[] = {

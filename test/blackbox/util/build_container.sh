@@ -75,9 +75,6 @@ cp ${blackboxlibpath}/* ${mirrorfolderlibpath}
 cp ${testcaselibpath}/*${nodesimpgm}* ${mirrorfolderlibpath}
 cp ${meshlinksrclibpath}/* ${mirrorfolderlibpath}
 cp ${cattasrclibpath}/* ${mirrorfolderlibpath}
-#   Find liblxc shared library files and copy them
-lxcso=`sudo find / -name "liblxc.so*"`
-cp ${lxcso} ${mirrorfolderlibpath}
 
 # Copy mirror folder into LXC Container
 #   Delete Destination Folder
