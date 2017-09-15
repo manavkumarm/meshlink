@@ -21,10 +21,21 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "containers.h"
 #include "../run_blackbox_tests/run_blackbox_tests.h"
 
 static char *lxc_path = "/home/manavkumarm/.local/share/lxc";
+static pthread_t attach_thread[10];
+static int maxThreadId = 0;
+
+static void *run_daemon(void *arg) {
+    int daemon_status = system((const char *)arg);
+    fprintf(stderr, "Daemon exited with status %d\n", daemon_status);
+    assert(daemon_status);
+
+    return NULL;
+}
 
 /* Create all required test containers */
 void create_containers(char *node_names[], int num_nodes) {
@@ -77,7 +88,9 @@ struct lxc_container *find_container(char *node_name) {
     return NULL;
 }
 
-/* Setup Containers required for a test */
+/* Setup Containers required for a test
+    This function should always be invoked in a CMocka context
+    after setting the state of the test case to an instance of black_box_state_t */
 void setup_containers(void **state) {
     black_box_state_t *test_state = (black_box_state_t *)(*state);
     int i;
@@ -85,15 +98,20 @@ void setup_containers(void **state) {
     struct lxc_container *test_container;
     int rename_status, build_status;
     char *ip = malloc(20);
+    size_t ip_len = sizeof(ip);
     bool ip_found;
     FILE *lxcls_fp;
     char lxcls_command[200];
-    size_t ip_len = sizeof(ip);
 
     for(i = 0; i < test_state->num_nodes; i++) {
         /* Locate the Container */
         assert(test_container = find_container(test_state->node_names[i]));
 
+        /* Stop the Container if it's running */
+        test_container->shutdown(test_container, 5);
+        /* Call stop() in case shutdown() fails
+            One of these two calls will always succeed */
+        test_container->stop(test_container);
         /* Rename the Container to make it specific to this test case */
         assert(snprintf(rename_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RENAME_SCRIPT
             " %s %s run_%s_%s", meshlink_root_path, lxc_path, test_container->name,
@@ -106,7 +124,7 @@ void setup_containers(void **state) {
         /* Find the Container again and start the Container */
         assert(test_container = find_container(test_state->node_names[i]));
         assert(test_container->start(test_container, 0, NULL));
-        /* Wait for Container to acquire an IP Address */
+        /* Wait for the Container to acquire an IP Address */
         assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
             test_container->name) >= 0);
         fprintf(stderr, "Waiting for Container '%s' to acquire IP", test_container->name);
@@ -135,7 +153,7 @@ void setup_containers(void **state) {
     return;
 }
 
-/* Destroy all Containers with names beginning with test_ */
+/* Destroy all Containers with names beginning with run_ */
 void destroy_containers(void) {
     struct lxc_container **test_containers;
     char **container_names;
@@ -148,7 +166,12 @@ void destroy_containers(void) {
         if(strstr(container_names[i], "run_")) {
             fprintf(stderr, "Shutdown and Destroy '%s'\n", container_names[i]);
             test_containers[i]->shutdown(test_containers[i], 5);
+            /* Call stop() in case shutdown() fails
+                One of these two calls will always succeed */
+            test_containers[i]->stop(test_containers[i]);
             test_containers[i]->destroy(test_containers[i]);
+            /* call destroy_with_snapshots() in case destroy() fails
+                one of these two calls will always succeed */
             test_containers[i]->destroy_with_snapshots(test_containers[i]);
         }
     }
@@ -157,8 +180,8 @@ void destroy_containers(void) {
 }
 
 /* Run 'cmd' inside the Container created for 'node' and return the first line of the output */
-char *run_in_container(char *cmd, char *node) {
-    char attach_command[400];
+char *run_in_container(char *cmd, char *node, bool daemonize) {
+    char *attach_command = malloc(400);
     struct lxc_container *container;
     FILE *attach_fp;
     char *output = malloc(100);
@@ -166,22 +189,50 @@ char *run_in_container(char *cmd, char *node) {
 
     assert(container = find_container(node));
     assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT " \"%s\" %s",
-        meshlink_root_path, cmd, container->name));
-    assert(attach_fp = popen(attach_command, "r"));
-    assert(getline(&output, &output_len, attach_fp) != -1);
-    output[strlen(output) - 1] = '\0';  // Strip out trailing newline
-    assert(pclose(attach_fp) != -1);
+        meshlink_root_path, cmd, container->name) != -1);
+    fprintf(stderr, "Attach Command: %s\n", attach_command);
+    if (daemonize) {
+        assert(pthread_create(&attach_thread[maxThreadId++], NULL, run_daemon,
+            (void *)attach_command) == 0);
+        output = NULL;
+    } else {
+        assert(attach_fp = popen(attach_command, "r"));
+        /* If the command has an output, strip out its newline and return it, otherwise return NULL */
+        if (getline(&output, &output_len, attach_fp) != -1)
+            output[strlen(output) - 1] = '\0';
+        else {
+            free(output);
+            output = NULL;
+        }
+        assert(pclose(attach_fp) != -1);
+    }
 
     return output;
 }
 
+/* Run the gen_invite command inside the 'inviter' container to generate an invite
+    for 'invitee', and return the generated invite which is output on the terminal */
 char *invite_in_container(char *inviter, char *invitee) {
     char invite_command[200];
+    char *invite_url;
 
     assert(snprintf(invite_command, 200,
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/gen_invite %s %s "
-        "2>gen_invite.log", inviter, invitee));
-    fprintf(stderr, "Generating Invite from '%s' to '%s'\n", inviter, invitee);
+        "2> gen_invite.log", inviter, invitee));
+    assert(invite_url = run_in_container(invite_command, inviter, false));
+    fprintf(stderr, "Invite Generated from '%s' to '%s': %s\n", inviter, invitee, invite_url);
 
-    return run_in_container(invite_command, inviter);
+    return invite_url;
+}
+
+void node_sim_in_container(char *node, char *device_class, char *invite_url) {
+    char node_sim_command[200];
+
+    assert(snprintf(node_sim_command, 200,
+        "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/node_sim_%s %s %s %s "
+        "2> node_sim_%s.log", node, node, device_class,
+        (invite_url) ? invite_url : "", node) != -1);
+    run_in_container(node_sim_command, node, true);
+
+    return;
 }

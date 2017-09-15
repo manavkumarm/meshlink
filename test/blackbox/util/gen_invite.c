@@ -26,8 +26,6 @@
 #define CMD_LINE_ARG_NODENAME   1
 #define CMD_LINE_ARG_INVITEE    2
 
-char *meshlink_root_path = "../../..";
-
 int main(int argc, char *argv[]) {
     char *invite = NULL;
     meshlink_handle_t *mesh_handle = NULL;

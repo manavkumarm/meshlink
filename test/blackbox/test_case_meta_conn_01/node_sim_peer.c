@@ -29,8 +29,6 @@
 #define CMD_LINE_ARG_DEVCLASS   2
 #define CMD_LINE_ARG_INVITEURL  3
 
-char *meshlink_root_path = "../../..";
-
 int main(int argc, char *argv[]) {
     struct timeval main_loop_wait = { 5000, 0 };
 

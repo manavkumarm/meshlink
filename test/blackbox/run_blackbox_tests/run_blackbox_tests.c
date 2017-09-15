@@ -29,23 +29,46 @@
 
 char *meshlink_root_path = "/home/manavkumarm/meshlink";
 
-int main(int argc, char *argv[]) {
-    char *nodes[] = { "peer", "relay", "peer2" };
-    black_box_state_t test_case_1_state = {
-        /* test_case_name = */ "test_case_meta_conn_01",
-        /* node_names = */ nodes,
-        /* num_nodes = */ 3,
-        /* test_result (defaulted to) = */ false
-    };
-    black_box_state_t *state_ptr = &test_case_1_state;
+int black_box_group0_setup(void **state) {
+    char *nodes[] = { "peer", "relay" };
 
     destroy_containers();
-    create_containers(nodes, 3);
-    setup_containers((void **)&state_ptr);
-    execute_open(NUT_NODE_NAME, "1");
-    fprintf(stderr, "Invite Generated from 'relay' to 'peer': %s\n",
-        invite_in_container("relay", "peer"));
+    create_containers(nodes, 2);
+
+    return 0;
+}
+
+int black_box_group0_teardown(void **state) {
     destroy_containers();
+
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    //char *invite_peer; //*invite_nut;
+
+    black_box_group0_setup(NULL);
+
+    char *test_1_nodes[] = { "relay", "peer" };
+    black_box_state_t test_case_1_state = {
+        /* test_case_name = */ "test_case_meta_conn_01",
+        /* node_names = */ test_1_nodes,
+        /* num_nodes = */ 2,
+        /* test_result (defaulted to) = */ false
+    };
+    black_box_state_t *test_1_state_ptr = &test_case_1_state;
+    setup_containers((void **)&test_1_state_ptr);
+    //invite_peer = invite_in_container("relay", "peer");
+    //invite_nut = invite_in_container("relay", "nut");
+    node_sim_in_container("relay", "1", NULL);
+    //node_sim_in_container("peer", "1", invite_peer);
+    //execute_open(NUT_NODE_NAME, "1");
+    //execute_join(invite_nut);
+    //execute_start();
+
+    //black_box_group0_teardown(NULL);
+
+    while (1) sleep(1);
 
     /*const struct CMUnitTest blackbox_tests[] = {
         cmocka_unit_test(utest_create_list_01)
