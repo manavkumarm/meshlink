@@ -26,16 +26,6 @@
 #include "../run_blackbox_tests/run_blackbox_tests.h"
 
 static char *lxc_path = "/home/manavkumarm/.local/share/lxc";
-static pthread_t attach_thread[10];
-static int maxThreadId = 0;
-
-static void *run_daemon(void *arg) {
-    int daemon_status = system((const char *)arg);
-    fprintf(stderr, "Daemon exited with status %d\n", daemon_status);
-    assert(daemon_status);
-
-    return NULL;
-}
 
 /* Create all required test containers */
 void create_containers(char *node_names[], int num_nodes) {
@@ -143,7 +133,7 @@ void setup_containers(void **state) {
         /* Build the Container by copying required files into it */
         assert(snprintf(build_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_BUILD_SCRIPT
             " %s %s %s +x >/dev/null", meshlink_root_path, test_state->test_case_name,
-            test_state->node_names[i], meshlink_root_path));
+            test_state->node_names[i], meshlink_root_path) >= 0);
         build_status = system(build_command);
         fprintf(stderr, "Container '%s' build Status: %d\n", test_container->name, build_status);
         assert(build_status == 0);
@@ -181,21 +171,34 @@ void destroy_containers(void) {
 
 /* Run 'cmd' inside the Container created for 'node' and return the first line of the output */
 char *run_in_container(char *cmd, char *node, bool daemonize) {
-    char *attach_command = malloc(400);
+    char attach_command[400];
+    char *attach_argv[4];
     struct lxc_container *container;
     FILE *attach_fp;
     char *output = malloc(100);
     size_t output_len = sizeof(output);
+    int i;
 
     assert(container = find_container(node));
-    assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT " \"%s\" %s",
-        meshlink_root_path, cmd, container->name) != -1);
-    fprintf(stderr, "Attach Command: %s\n", attach_command);
     if (daemonize) {
-        assert(pthread_create(&attach_thread[maxThreadId++], NULL, run_daemon,
-            (void *)attach_command) == 0);
+        for (i = 0; i < 3; i++)
+            assert(attach_argv[i] = malloc(200));
+        assert(snprintf(attach_argv[0], 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT,
+            meshlink_root_path) >= 0);
+        //assert(snprintf(attach_argv[1], 200, "\"%s\"", cmd) >= 0);
+        strncpy(attach_argv[1], cmd, 200);
+        strncpy(attach_argv[2], container->name, 200);
+        attach_argv[3] = NULL;
+        fprintf(stderr, "execv arguments: %s \"%s\" %s\n", attach_argv[0], attach_argv[1],
+            attach_argv[2]);
+        /* Create a child process and run the command in that child process */
+        if (fork() == 0)
+            assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
         output = NULL;
     } else {
+        assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT
+            " \"%s\" %s", meshlink_root_path, cmd, container->name) >= 0);
+        fprintf(stderr, "Attach Command: %s\n", attach_command);
         assert(attach_fp = popen(attach_command, "r"));
         /* If the command has an output, strip out its newline and return it, otherwise return NULL */
         if (getline(&output, &output_len, attach_fp) != -1)
@@ -218,7 +221,7 @@ char *invite_in_container(char *inviter, char *invitee) {
 
     assert(snprintf(invite_command, 200,
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/gen_invite %s %s "
-        "2> gen_invite.log", inviter, invitee));
+        "2> gen_invite.log", inviter, invitee) >= 0);
     assert(invite_url = run_in_container(invite_command, inviter, false));
     fprintf(stderr, "Invite Generated from '%s' to '%s': %s\n", inviter, invitee, invite_url);
 
@@ -231,8 +234,9 @@ void node_sim_in_container(char *node, char *device_class, char *invite_url) {
     assert(snprintf(node_sim_command, 200,
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/node_sim_%s %s %s %s "
         "2> node_sim_%s.log", node, node, device_class,
-        (invite_url) ? invite_url : "", node) != -1);
+        (invite_url) ? invite_url : "", node) >= 0);
     run_in_container(node_sim_command, node, true);
+    fprintf(stderr, "node_sim_%s started in Container\n", node);
 
     return;
 }

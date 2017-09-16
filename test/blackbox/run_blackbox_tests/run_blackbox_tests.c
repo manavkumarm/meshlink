@@ -45,7 +45,7 @@ int black_box_group0_teardown(void **state) {
 }
 
 int main(int argc, char *argv[]) {
-    //char *invite_peer; //*invite_nut;
+    char *invite_peer; //*invite_nut;
 
     black_box_group0_setup(NULL);
 
@@ -58,10 +58,10 @@ int main(int argc, char *argv[]) {
     };
     black_box_state_t *test_1_state_ptr = &test_case_1_state;
     setup_containers((void **)&test_1_state_ptr);
-    //invite_peer = invite_in_container("relay", "peer");
+    invite_peer = invite_in_container("relay", "peer");
     //invite_nut = invite_in_container("relay", "nut");
     node_sim_in_container("relay", "1", NULL);
-    //node_sim_in_container("peer", "1", invite_peer);
+    node_sim_in_container("peer", "1", invite_peer);
     //execute_open(NUT_NODE_NAME, "1");
     //execute_join(invite_nut);
     //execute_start();
