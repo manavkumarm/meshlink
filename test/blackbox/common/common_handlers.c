@@ -20,11 +20,14 @@
 */
 #include <stdio.h>
 #include <signal.h>
+#include <stdlib.h>
 #include "node_sim.h"
 #include "test_step.h"
 
 void mesh_close_signal_handler(int a) {
     execute_close();
+
+    exit(EXIT_SUCCESS);
 }
 
 void mesh_stop_start_signal_handler(int a) {

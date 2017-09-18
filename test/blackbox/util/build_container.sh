@@ -39,6 +39,8 @@ mirrorfolder="test"
 mirrorfolderpath="${testcasepath}/${mirrorfolder}"
 mirrorfolderlibpath="${mirrorfolderpath}/${ltlibfolder}"
 containerdstpath="/home/ubuntu/${mirrorfolder}"
+containerconfbase="/testconf"
+containerlogpath=""
 #   Program/Script Names
 ltprefix="lt-"
 nodestepscript="node_step.sh"
@@ -79,6 +81,9 @@ cp ${cattasrclibpath}/* ${mirrorfolderlibpath}
 # Copy mirror folder into LXC Container
 #   Delete Destination Folder
 ${blackboxutilpath}/${lxcrunscript} "rm -rf ${containerdstpath}" ${containername}
+#   Delete Meshlink confbase folder and logs from Container - every new test case starts on a clean slate
+${blackboxutilpath}/${lxcrunscript} "rm -rf ${containerconfbase}" ${containername}
+${blackboxutilpath}/${lxcrunscript} "rm ${containerlogpath}/*.log" ${containername}
 #   Create Destination Folder and Copy Files
 ${blackboxutilpath}/${lxccopydirscript} ${mirrorfolderpath} ${containername} ${containerdstpath}
 

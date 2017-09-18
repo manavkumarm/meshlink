@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
     invite = meshlink_invite(mesh_handle, argv[CMD_LINE_ARG_INVITEE]);
     fprintf(stderr, "meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
     assert(invite);
+    execute_close();
     printf("%s\n", invite);
 
     return EXIT_SUCCESS;

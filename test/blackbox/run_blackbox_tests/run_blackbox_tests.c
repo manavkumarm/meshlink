@@ -45,9 +45,9 @@ int black_box_group0_teardown(void **state) {
 }
 
 int main(int argc, char *argv[]) {
-    char *invite_peer; //*invite_nut;
+    char *invite_peer, *invite_nut;
 
-    black_box_group0_setup(NULL);
+    //black_box_group0_setup(NULL);
 
     char *test_1_nodes[] = { "relay", "peer" };
     black_box_state_t test_case_1_state = {
@@ -57,18 +57,16 @@ int main(int argc, char *argv[]) {
         /* test_result (defaulted to) = */ false
     };
     black_box_state_t *test_1_state_ptr = &test_case_1_state;
-    setup_containers((void **)&test_1_state_ptr);
+    //setup_containers((void **)&test_1_state_ptr);
     invite_peer = invite_in_container("relay", "peer");
-    //invite_nut = invite_in_container("relay", "nut");
+    invite_nut = invite_in_container("relay", "nut");
     node_sim_in_container("relay", "1", NULL);
     node_sim_in_container("peer", "1", invite_peer);
-    //execute_open(NUT_NODE_NAME, "1");
-    //execute_join(invite_nut);
-    //execute_start();
+    execute_open(NUT_NODE_NAME, "1");
+    execute_join(invite_nut);
+    execute_start();
 
-    //black_box_group0_teardown(NULL);
-
-    while (1) sleep(1);
+    black_box_group0_teardown(NULL);
 
     /*const struct CMUnitTest blackbox_tests[] = {
         cmocka_unit_test(utest_create_list_01)

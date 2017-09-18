@@ -139,6 +139,9 @@ void setup_containers(void **state) {
         assert(build_status == 0);
     }
 
+    /* Delete any existing NUT confbase folder - every test case starts on a clean state */
+    assert(system("rm -rf testconf") == 0);
+
     free(ip);
     return;
 }
@@ -154,7 +157,7 @@ void destroy_containers(void) {
 
     for(i = 0; i < num_containers; i++) {
         if(strstr(container_names[i], "run_")) {
-            fprintf(stderr, "Shutdown and Destroy '%s'\n", container_names[i]);
+            fprintf(stderr, "Destroying Container '%s'\n", container_names[i]);
             test_containers[i]->shutdown(test_containers[i], 5);
             /* Call stop() in case shutdown() fails
                 One of these two calls will always succeed */
@@ -185,12 +188,9 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
             assert(attach_argv[i] = malloc(200));
         assert(snprintf(attach_argv[0], 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT,
             meshlink_root_path) >= 0);
-        //assert(snprintf(attach_argv[1], 200, "\"%s\"", cmd) >= 0);
         strncpy(attach_argv[1], cmd, 200);
         strncpy(attach_argv[2], container->name, 200);
         attach_argv[3] = NULL;
-        fprintf(stderr, "execv arguments: %s \"%s\" %s\n", attach_argv[0], attach_argv[1],
-            attach_argv[2]);
         /* Create a child process and run the command in that child process */
         if (fork() == 0)
             assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
@@ -198,9 +198,9 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
     } else {
         assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT
             " \"%s\" %s", meshlink_root_path, cmd, container->name) >= 0);
-        fprintf(stderr, "Attach Command: %s\n", attach_command);
         assert(attach_fp = popen(attach_command, "r"));
-        /* If the command has an output, strip out its newline and return it, otherwise return NULL */
+        /* If the command has an output, strip out its newline and return it,
+            otherwise return NULL */
         if (getline(&output, &output_len, attach_fp) != -1)
             output[strlen(output) - 1] = '\0';
         else {
@@ -228,6 +228,7 @@ char *invite_in_container(char *inviter, char *invitee) {
     return invite_url;
 }
 
+/* Run the node_sim_<nodename> program inside the 'node''s container */
 void node_sim_in_container(char *node, char *device_class, char *invite_url) {
     char node_sim_command[200];
 

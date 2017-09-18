@@ -38,9 +38,6 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
     /* Set up logging for Meshlink */
     meshlink_set_log_cb(NULL, TEST_MESHLINK_LOG_LEVEL, meshlink_callback_logger);
 
-    /* Delete the meshlink confbase folder if it already exists */
-    assert(system("rm -rf testconf") == 0);
-
     /* Create meshlink instance */
     mesh_handle = meshlink_open("testconf", node_name, "node_sim", atoi(dev_class));
     fprintf(stderr, "meshlink_open status: %s\n", meshlink_strerror(meshlink_errno));
@@ -62,6 +59,7 @@ char *execute_invite(char *invitee) {
 }
 
 void execute_join(char *invite_url) {
+    fprintf(stderr, "Joining with invite: %s\n", invite_url);
     bool join_status = meshlink_join(mesh_handle, invite_url);
 
     fprintf(stderr, "meshlink_join status: %s\n", meshlink_strerror(meshlink_errno));
@@ -90,6 +88,6 @@ void execute_stop(void) {
 void execute_close(void) {
     meshlink_close(mesh_handle);
 
-    exit(EXIT_SUCCESS);
+    return;
 }
 
