@@ -25,11 +25,9 @@
 #include "../../../src/meshlink.h"
 #include "test_step.h"
 #include "common_handlers.h"
-#include "../common/node_sim.h"
-#include "../run_blackbox_tests/run_blackbox_tests.h"
 
 /* Modify this to change the logging level of Meshlink */
-#define TEST_MESHLINK_LOG_LEVEL MESHLINK_DEBUG
+#define TEST_MESHLINK_LOG_LEVEL MESHLINK_INFO
 
 meshlink_handle_t *mesh_handle = NULL;
 bool mesh_started = false;
@@ -59,8 +57,12 @@ char *execute_invite(char *invitee) {
 }
 
 void execute_join(char *invite_url) {
-    fprintf(stderr, "Joining with invite: %s\n", invite_url);
-    bool join_status = meshlink_join(mesh_handle, invite_url);
+    bool join_status;
+
+    fprintf(stderr, "Sleeping 1 sec to allow inviting node to start listening...\n");
+    sleep(1);
+
+    join_status = meshlink_join(mesh_handle, invite_url);
 
     fprintf(stderr, "meshlink_join status: %s\n", meshlink_strerror(meshlink_errno));
     assert(join_status);

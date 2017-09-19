@@ -25,9 +25,18 @@
 #include <assert.h>
 #include "../common/test_step.h"
 #include "../common/containers.h"
-#include "run_blackbox_tests.h"
+#include "../common/common_handlers.h"
 
 char *meshlink_root_path = "/home/manavkumarm/meshlink";
+
+static char *test_1_nodes[] = { "relay", "peer" };
+static black_box_state_t test_case_1_state = {
+    /* test_case_name = */ "test_case_meta_conn_01",
+    /* node_names = */ test_1_nodes,
+    /* num_nodes = */ 2,
+    /* test_result (defaulted to) = */ false
+};
+static black_box_state_t *test_1_state_ptr = &test_case_1_state;
 
 int black_box_group0_setup(void **state) {
     char *nodes[] = { "peer", "relay" };
@@ -47,26 +56,23 @@ int black_box_group0_teardown(void **state) {
 int main(int argc, char *argv[]) {
     char *invite_peer, *invite_nut;
 
-    //black_box_group0_setup(NULL);
+    black_box_group0_setup(NULL);
 
-    char *test_1_nodes[] = { "relay", "peer" };
-    black_box_state_t test_case_1_state = {
-        /* test_case_name = */ "test_case_meta_conn_01",
-        /* node_names = */ test_1_nodes,
-        /* num_nodes = */ 2,
-        /* test_result (defaulted to) = */ false
-    };
-    black_box_state_t *test_1_state_ptr = &test_case_1_state;
-    //setup_containers((void **)&test_1_state_ptr);
+    setup_containers((void **)&test_1_state_ptr);
+    set_state_ptr(test_1_state_ptr);
     invite_peer = invite_in_container("relay", "peer");
-    invite_nut = invite_in_container("relay", "nut");
+    invite_nut = invite_in_container("relay", NUT_NODE_NAME);
     node_sim_in_container("relay", "1", NULL);
     node_sim_in_container("peer", "1", invite_peer);
     execute_open(NUT_NODE_NAME, "1");
     execute_join(invite_nut);
     execute_start();
-
-    black_box_group0_teardown(NULL);
+    fprintf(stderr, "Waiting for peer to be connected\n");
+    while (!get_meta_conn_status(1))
+        sleep(1);
+    fprintf(stderr, "peer is connected\n");
+    while (1) sleep(1);
+    //black_box_group0_teardown(NULL);
 
     /*const struct CMUnitTest blackbox_tests[] = {
         cmocka_unit_test(utest_create_list_01)

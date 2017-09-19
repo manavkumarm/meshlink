@@ -19,7 +19,6 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include "../../../src/meshlink.h"
 #include "../common/test_step.h"
 
@@ -28,16 +27,13 @@
 
 int main(int argc, char *argv[]) {
     char *invite = NULL;
-    meshlink_handle_t *mesh_handle = NULL;
 
     /* Start mesh, generate an invite and print out the invite */
-    mesh_handle = execute_open(argv[CMD_LINE_ARG_NODENAME], "1");
+    execute_open(argv[CMD_LINE_ARG_NODENAME], "1");
     execute_start();
-    invite = meshlink_invite(mesh_handle, argv[CMD_LINE_ARG_INVITEE]);
-    fprintf(stderr, "meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
-    assert(invite);
-    execute_close();
+    invite = execute_invite(argv[CMD_LINE_ARG_INVITEE]);
     printf("%s\n", invite);
+    //execute_close();
 
     return EXIT_SUCCESS;
 }

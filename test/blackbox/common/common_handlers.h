@@ -22,11 +22,14 @@
 #ifndef COMMON_HANDLERS_H
 #define COMMON_HANDLERS_H
 
+#include "common_types.h"
 
+void set_state_ptr(black_box_state_t *ptr);
+bool get_meta_conn_status(int node_index);
 void mesh_close_signal_handler(int a);
 void mesh_stop_start_signal_handler(int a);
 void setup_signals(void);
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text);
 
-#endif // MESHLINK_INTERNAL_H
+#endif // COMMON_HANDLERS_H

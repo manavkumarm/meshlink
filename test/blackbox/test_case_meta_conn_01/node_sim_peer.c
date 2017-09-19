@@ -21,7 +21,6 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
-#include "../common/node_sim.h"
 #include "../common/common_handlers.h"
 #include "../common/test_step.h"
 

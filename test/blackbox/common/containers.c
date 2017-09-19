@@ -1,5 +1,5 @@
 /*
-    containers.c -- Container Management API
+    containers.h -- Container Management API
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "containers.h"
-#include "../run_blackbox_tests/run_blackbox_tests.h"
+#include "common_types.h"
 
 static char *lxc_path = "/home/manavkumarm/.local/share/lxc";
 
@@ -83,7 +83,7 @@ struct lxc_container *find_container(char *node_name) {
     after setting the state of the test case to an instance of black_box_state_t */
 void setup_containers(void **state) {
     black_box_state_t *test_state = (black_box_state_t *)(*state);
-    int i;
+    int i, confbase_del_status;
     char rename_command[200], build_command[200];
     struct lxc_container *test_container;
     int rename_status, build_status;
@@ -140,7 +140,9 @@ void setup_containers(void **state) {
     }
 
     /* Delete any existing NUT confbase folder - every test case starts on a clean state */
-    assert(system("rm -rf testconf") == 0);
+    confbase_del_status = system("rm -rf testconf");
+    fprintf(stderr, "Confbase Folder Delete Status: %d\n", confbase_del_status);
+    assert(confbase_del_status == 0);
 
     free(ip);
     return;

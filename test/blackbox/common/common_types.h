@@ -1,5 +1,5 @@
 /*
-    mesh_simulate_node.h -- Global Declarations
+    common_types.h -- Declarations of common types used in Black Box Testing
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -18,10 +18,25 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef MESH_SIMULATE_NODE_H
-#define MESH_SIMULATE_NODE_H
+#ifndef COMMON_TYPES_H
+#define COMMON_TYPES_H
 
+#include <stdbool.h>
 #include "../../../src/meshlink.h"
+
+#define LXC_UTIL_REL_PATH "test/blackbox/util"
+#define LXC_RENAME_SCRIPT "lxc_rename.sh"
+#define LXC_RUN_SCRIPT "lxc_run.sh"
+#define LXC_BUILD_SCRIPT "build_container.sh"
+
+typedef struct black_box_state {
+    char *test_case_name;
+    char **node_names;
+    int num_nodes;
+    bool test_result;
+} black_box_state_t;
+
+extern char *meshlink_root_path;
 
 /* Meshlink Mesh Handle */
 extern meshlink_handle_t *mesh_handle;
@@ -29,4 +44,4 @@ extern meshlink_handle_t *mesh_handle;
 /* Flag to indicate if Mesh is running */
 extern bool mesh_started;
 
-#endif // MESHLINK_INTERNAL_H
+#endif // COMMON_TYPES_H

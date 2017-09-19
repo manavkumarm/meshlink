@@ -21,8 +21,26 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
-#include "node_sim.h"
+#include <assert.h>
+#include <string.h>
 #include "test_step.h"
+#include "common_handlers.h"
+
+static black_box_state_t *state_ptr;
+static bool meta_conn_status[10];
+
+void set_state_ptr(black_box_state_t *ptr) {
+    state_ptr = ptr;
+
+    return;
+}
+
+bool get_meta_conn_status(int node_index) {
+    if (state_ptr)
+        return meta_conn_status[node_index];
+    else
+        return false;
+}
 
 void mesh_close_signal_handler(int a) {
     execute_close();
@@ -46,7 +64,18 @@ void setup_signals(void) {
 
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text) {
+    int i;
+    char connection_match_msg[100];
+
     fprintf(stderr, "meshlink>> %s\n", text);
+
+    if (state_ptr)
+        for (i = 0; i < state_ptr->num_nodes; i++) {
+            assert(snprintf(connection_match_msg, 100, "Connection with %s activated",
+                state_ptr->node_names[i]));
+            if (strcmp(connection_match_msg, text) == 0)
+                meta_conn_status[i] = true;
+        }
 
     return;
 }
