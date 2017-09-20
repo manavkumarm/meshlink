@@ -34,7 +34,6 @@ void create_containers(char *node_names[], int num_nodes) {
     struct lxc_container *first_container;
     int create_status, snapshot_status, snap_restore_status;
 
-    fprintf(stderr, "Creating Containers\n");
     for(i = 0; i < num_nodes; i++) {
         assert(snprintf(container_name, 100, "run_%s", node_names[i]) >= 0);
         if(i == 0) {
@@ -87,12 +86,13 @@ void setup_containers(void **state) {
     char rename_command[200], build_command[200];
     struct lxc_container *test_container;
     int rename_status, build_status;
-    char *ip = malloc(20);
-    size_t ip_len = sizeof(ip);
+    char *ip;
+    size_t ip_len;
     bool ip_found;
     FILE *lxcls_fp;
     char lxcls_command[200];
 
+    fprintf(stderr, "[ %s ]\n", test_state->test_case_name);
     for(i = 0; i < test_state->num_nodes; i++) {
         /* Locate the Container */
         assert(test_container = find_container(test_state->node_names[i]));
@@ -118,6 +118,8 @@ void setup_containers(void **state) {
         assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
             test_container->name) >= 0);
         fprintf(stderr, "Waiting for Container '%s' to acquire IP", test_container->name);
+        assert(ip = malloc(20));
+        ip_len = sizeof(ip);
         ip_found = false;
         while (!ip_found) {
             assert(lxcls_fp = popen(lxcls_command, "r"));
@@ -180,8 +182,8 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
     char *attach_argv[4];
     struct lxc_container *container;
     FILE *attach_fp;
-    char *output = malloc(100);
-    size_t output_len = sizeof(output);
+    char *output = NULL;
+    size_t output_len;
     int i;
 
     assert(container = find_container(node));
@@ -194,17 +196,26 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
         strncpy(attach_argv[2], container->name, 200);
         attach_argv[3] = NULL;
         /* Create a child process and run the command in that child process */
-        if (fork() == 0)
+        if (fork() == 0) {
             assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
-        output = NULL;
+            assert(daemon(1, 0) != -1);  // daemonize the process so prints no more to the terminal
+        }
+        for (i = 0; i < 3; i++)
+            free(attach_argv[i]);
     } else {
         assert(snprintf(attach_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT
             " \"%s\" %s", meshlink_root_path, cmd, container->name) >= 0);
         assert(attach_fp = popen(attach_command, "r"));
-        /* If the command has an output, strip out its newline and return it,
-            otherwise return NULL */
-        if (getline(&output, &output_len, attach_fp) != -1)
-            output[strlen(output) - 1] = '\0';
+        /* If the command has an output, strip out any trailing carriage returns or newlines and
+            return it, otherwise return NULL */
+        assert(output = malloc(100));
+        output_len = sizeof(output);
+        if (getline(&output, &output_len, attach_fp) != -1) {
+            i = strlen(output) - 1;
+            while (output[i] == '\n' || output[i] == '\r')
+                i--;
+            output[i + 1] = '\0';
+        }
         else {
             free(output);
             output = NULL;
@@ -236,10 +247,24 @@ void node_sim_in_container(char *node, char *device_class, char *invite_url) {
 
     assert(snprintf(node_sim_command, 200,
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/node_sim_%s %s %s %s "
-        "2> node_sim_%s.log", node, node, device_class,
-        (invite_url) ? invite_url : "", node) >= 0);
+        "> node_sim_%s.log 2> node_sim_%s.log", node, node, device_class,
+        (invite_url) ? invite_url : "", node, node) >= 0);
     run_in_container(node_sim_command, node, true);
     fprintf(stderr, "node_sim_%s started in Container\n", node);
+
+    return;
+}
+
+/* Run the node_step.sh script inside the 'node''s container to send the 'sig' signal to the
+    node_sim program in the container */
+void node_step_in_container(char *node, char *sig) {
+    char node_step_command[200];
+
+    assert(snprintf(node_step_command, 200,
+        "/home/ubuntu/test/node_step.sh lt-node_sim_%s %s > node_step.log 2> node_step.log",
+        node, sig) >= 0);
+    run_in_container(node_step_command, node, false);
+    fprintf(stderr, "Signal %s sent to node_sim_%s\n", sig, node);
 
     return;
 }

@@ -29,7 +29,7 @@
 #define CMD_LINE_ARG_INVITEURL  3
 
 int main(int argc, char *argv[]) {
-    struct timeval main_loop_wait = { 5000, 0 };
+    struct timeval main_loop_wait = { 5, 0 };
 
     /* Setup required signals */
     setup_signals();

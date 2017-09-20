@@ -43,6 +43,8 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
 
     /* Set up logging for Meshlink with the newly acquired Mesh Handle */
     meshlink_set_log_cb(mesh_handle, TEST_MESHLINK_LOG_LEVEL, meshlink_callback_logger);
+    /* Set up callback for node status (reachable / unreachable) */
+    meshlink_set_node_status_cb(mesh_handle, meshlink_callback_node_status);
 
     return mesh_handle;
 }

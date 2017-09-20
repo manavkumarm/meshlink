@@ -1,5 +1,5 @@
 /*
-    test_cases.h -- Declarations for Individual Test Case implementation functions
+    execute_tests.h -- Black Box Utility Functions for executing tests
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -18,12 +18,14 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef TEST_CASES_H
-#define TEST_CASES_H
+#ifndef EXECUTE_TESTS_H
+#define EXECUTE_TESTS_H
 
 #include <stdbool.h>
 
-void test_case_meta_conn_01(void **state);
-bool test_steps_meta_conn_01(void);
+typedef bool (*test_step_func_t)(void);
+
+int setup_test(void **state);
+void execute_test(test_step_func_t step_func, void **state);
 
 #endif // TEST_STEP_H

@@ -1,7 +1,5 @@
 /*
-    node_sim.c -- Implementation of Node Simulation for Meshlink Testing
-                    for meta connection test case 01 - re-connection of
-                    two nodes when relay node goes down
+    execute_tests.c -- Utility functions for black box test execution
     Copyright (C) 2017  Guus Sliepen <guus@meshlink.io>
                         Manav Kumar Mehta <manavkumarm@yahoo.com>
 
@@ -19,27 +17,31 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <stdio.h>
+
 #include <stdlib.h>
+#include <stdarg.h>
+#include <setjmp.h>
+#include <cmocka.h>
+#include "execute_tests.h"
 #include "../common/common_handlers.h"
-#include "../common/test_step.h"
+#include "../common/containers.h"
 
-#define CMD_LINE_ARG_NODENAME   1
-#define CMD_LINE_ARG_DEVCLASS   2
-#define CMD_LINE_ARG_INVITEURL  3
+int setup_test(void **state) {
+    printf("Setting up Containers\n");
+    setup_containers(state);
+    set_state_ptr((black_box_state_t *)(*state));
 
-int main(int argc, char *argv[]) {
-    struct timeval main_loop_wait = { 5, 0 };
+    return EXIT_SUCCESS;
+}
 
-    /* Setup required signals */
-    setup_signals();
+void execute_test(test_step_func_t step_func, void **state) {
+    black_box_state_t *state_ptr = (black_box_state_t *) state;
 
-    /* Execute test steps */
-    execute_open(argv[CMD_LINE_ARG_NODENAME], argv[CMD_LINE_ARG_DEVCLASS]);
-    execute_join(argv[CMD_LINE_ARG_INVITEURL]);
-    execute_start();
+    printf("Running Test\n");
+    state_ptr->test_result = step_func();
 
-    /* All test steps executed - wait for signals to stop/start or close the mesh */
-    while(1)
-        select(1, NULL, NULL, NULL, &main_loop_wait);
+    if (!state_ptr->test_result)
+        fail();
+
+    return;
 }

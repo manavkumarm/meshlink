@@ -27,19 +27,14 @@
 #include "common_handlers.h"
 
 static black_box_state_t *state_ptr;
-static bool meta_conn_status[10];
+
+bool meta_conn_status[10];
+bool node_reachable_status[10];
 
 void set_state_ptr(black_box_state_t *ptr) {
     state_ptr = ptr;
 
     return;
-}
-
-bool get_meta_conn_status(int node_index) {
-    if (state_ptr)
-        return meta_conn_status[node_index];
-    else
-        return false;
 }
 
 void mesh_close_signal_handler(int a) {
@@ -62,6 +57,20 @@ void setup_signals(void) {
     return;
 }
 
+void meshlink_callback_node_status(meshlink_handle_t *mesh, meshlink_node_t *node,
+                                        bool reachable) {
+    int i;
+
+    fprintf(stderr, "Node %s became %s\n", node->name, (reachable) ? "reachable" : "unreachable");
+
+    if (state_ptr)
+        for (i = 0; i < state_ptr->num_nodes; i++)
+            if (strcmp(node->name, state_ptr->node_names[i]) == 0)
+                node_reachable_status[i] = reachable;
+
+    return;
+}
+
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text) {
     int i;
@@ -69,12 +78,28 @@ void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t leve
 
     fprintf(stderr, "meshlink>> %s\n", text);
 
-    if (state_ptr)
+    if (state_ptr && (strstr(text, "Connection") || strstr(text, "connection")))
         for (i = 0; i < state_ptr->num_nodes; i++) {
             assert(snprintf(connection_match_msg, 100, "Connection with %s activated",
                 state_ptr->node_names[i]));
-            if (strcmp(connection_match_msg, text) == 0)
+            if (strcmp(connection_match_msg, text) == 0) {
                 meta_conn_status[i] = true;
+                continue;
+            }
+
+            assert(snprintf(connection_match_msg, 100, "Connection closed by %s",
+                state_ptr->node_names[i]));
+            if (strcmp(connection_match_msg, text) == 0) {
+                meta_conn_status[i] = false;
+                continue;
+            }
+
+            assert(snprintf(connection_match_msg, 100, "Closing connection with %s",
+                state_ptr->node_names[i]));
+            if (strcmp(connection_match_msg, text) == 0) {
+                meta_conn_status[i] = false;
+                continue;
+            }
         }
 
     return;

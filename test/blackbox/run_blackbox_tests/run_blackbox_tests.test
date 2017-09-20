@@ -1,0 +1,2 @@
+#!/bin/sh
+./run_blackbox_tests >&1 >&2 2> blackbox_tests.log

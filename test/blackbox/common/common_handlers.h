@@ -24,11 +24,15 @@
 
 #include "common_types.h"
 
+extern bool meta_conn_status[];
+extern bool node_reachable_status[];
+
 void set_state_ptr(black_box_state_t *ptr);
-bool get_meta_conn_status(int node_index);
 void mesh_close_signal_handler(int a);
 void mesh_stop_start_signal_handler(int a);
 void setup_signals(void);
+void meshlink_callback_node_status(meshlink_handle_t *mesh, meshlink_node_t *node,
+                                        bool reachable);
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text);
 
