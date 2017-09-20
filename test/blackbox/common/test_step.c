@@ -38,7 +38,7 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
 
     /* Create meshlink instance */
     mesh_handle = meshlink_open("testconf", node_name, "node_sim", atoi(dev_class));
-    fprintf(stderr, "meshlink_open status: %s\n", meshlink_strerror(meshlink_errno));
+    PRINT_TEST_CASE_MSG("meshlink_open status: %s\n", meshlink_strerror(meshlink_errno));
     assert(mesh_handle);
 
     /* Set up logging for Meshlink with the newly acquired Mesh Handle */
@@ -52,7 +52,7 @@ meshlink_handle_t *execute_open(char *node_name, char *dev_class) {
 char *execute_invite(char *invitee) {
     char *invite_url = meshlink_invite(mesh_handle, invitee);
 
-    fprintf(stderr, "meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
+    PRINT_TEST_CASE_MSG("meshlink_invite status: %s\n", meshlink_strerror(meshlink_errno));
     assert(invite_url);
 
     return invite_url;
@@ -61,12 +61,12 @@ char *execute_invite(char *invitee) {
 void execute_join(char *invite_url) {
     bool join_status;
 
-    fprintf(stderr, "Sleeping 1 sec to allow inviting node to start listening...\n");
+    PRINT_TEST_CASE_MSG("Sleeping 1 sec to allow inviting node to start listening...\n");
     sleep(1);
 
     join_status = meshlink_join(mesh_handle, invite_url);
 
-    fprintf(stderr, "meshlink_join status: %s\n", meshlink_strerror(meshlink_errno));
+    PRINT_TEST_CASE_MSG("meshlink_join status: %s\n", meshlink_strerror(meshlink_errno));
     assert(join_status);
 
     return;
@@ -75,7 +75,7 @@ void execute_join(char *invite_url) {
 void execute_start(void) {
     bool start_init_status = meshlink_start(mesh_handle);
 
-    fprintf(stderr, "meshlink_start status: %s\n", meshlink_strerror(meshlink_errno));
+    PRINT_TEST_CASE_MSG("meshlink_start status: %s\n", meshlink_strerror(meshlink_errno));
     assert(start_init_status);
     mesh_started = true;
 

@@ -28,19 +28,19 @@
 
 int setup_test(void **state) {
     printf("Setting up Containers\n");
+    state_ptr = (black_box_state_t *)(*state);
     setup_containers(state);
-    set_state_ptr((black_box_state_t *)(*state));
 
     return EXIT_SUCCESS;
 }
 
 void execute_test(test_step_func_t step_func, void **state) {
-    black_box_state_t *state_ptr = (black_box_state_t *) state;
+    black_box_state_t *st_ptr = (black_box_state_t *) state;
 
     printf("Running Test\n");
-    state_ptr->test_result = step_func();
+    st_ptr->test_result = step_func();
 
-    if (!state_ptr->test_result)
+    if (!st_ptr->test_result)
         fail();
 
     return;

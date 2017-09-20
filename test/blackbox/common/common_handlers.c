@@ -26,16 +26,10 @@
 #include "test_step.h"
 #include "common_handlers.h"
 
-static black_box_state_t *state_ptr;
+black_box_state_t *state_ptr = NULL;
 
 bool meta_conn_status[10];
 bool node_reachable_status[10];
-
-void set_state_ptr(black_box_state_t *ptr) {
-    state_ptr = ptr;
-
-    return;
-}
 
 void mesh_close_signal_handler(int a) {
     execute_close();

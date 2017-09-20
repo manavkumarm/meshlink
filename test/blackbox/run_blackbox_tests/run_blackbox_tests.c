@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
     failed_tests = cmocka_run_group_tests(blackbox_tests, black_box_group0_setup,
         black_box_group0_teardown);
     printf("[ PASSED ] %d test(s).\n", num_tests - failed_tests);
+    printf("[ FAILED ] %d test(s).\n", failed_tests);
 
     return failed_tests;
 }

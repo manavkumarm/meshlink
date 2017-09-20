@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "containers.h"
-#include "common_types.h"
+#include "common_handlers.h"
 
 static char *lxc_path = "/home/manavkumarm/.local/share/lxc";
 
@@ -92,7 +92,7 @@ void setup_containers(void **state) {
     FILE *lxcls_fp;
     char lxcls_command[200];
 
-    fprintf(stderr, "[ %s ]\n", test_state->test_case_name);
+    PRINT_TEST_CASE_HEADER();
     for(i = 0; i < test_state->num_nodes; i++) {
         /* Locate the Container */
         assert(test_container = find_container(test_state->node_names[i]));
@@ -106,7 +106,7 @@ void setup_containers(void **state) {
         assert(snprintf(rename_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RENAME_SCRIPT
             " %s %s run_%s_%s", meshlink_root_path, lxc_path, test_container->name,
             test_state->test_case_name, test_state->node_names[i]) >= 0);
-        fprintf(stderr, "Container '%s' rename status: ", test_container->name);
+        PRINT_TEST_CASE_MSG("Container '%s' rename status: ", test_container->name);
         rename_status = system(rename_command);
         fprintf(stderr, "%d\n", rename_status);
         assert(rename_status == 0);
@@ -117,7 +117,7 @@ void setup_containers(void **state) {
         /* Wait for the Container to acquire an IP Address */
         assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
             test_container->name) >= 0);
-        fprintf(stderr, "Waiting for Container '%s' to acquire IP", test_container->name);
+        PRINT_TEST_CASE_MSG("Waiting for Container '%s' to acquire IP", test_container->name);
         assert(ip = malloc(20));
         ip_len = sizeof(ip);
         ip_found = false;
@@ -137,13 +137,14 @@ void setup_containers(void **state) {
             " %s %s %s +x >/dev/null", meshlink_root_path, test_state->test_case_name,
             test_state->node_names[i], meshlink_root_path) >= 0);
         build_status = system(build_command);
-        fprintf(stderr, "Container '%s' build Status: %d\n", test_container->name, build_status);
+        PRINT_TEST_CASE_MSG("Container '%s' build Status: %d\n", test_container->name,
+            build_status);
         assert(build_status == 0);
     }
 
     /* Delete any existing NUT confbase folder - every test case starts on a clean state */
     confbase_del_status = system("rm -rf testconf");
-    fprintf(stderr, "Confbase Folder Delete Status: %d\n", confbase_del_status);
+    PRINT_TEST_CASE_MSG("Confbase Folder Delete Status: %d\n", confbase_del_status);
     assert(confbase_del_status == 0);
 
     free(ip);
@@ -196,10 +197,8 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
         strncpy(attach_argv[2], container->name, 200);
         attach_argv[3] = NULL;
         /* Create a child process and run the command in that child process */
-        if (fork() == 0) {
+        if (fork() == 0)
             assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
-            assert(daemon(1, 0) != -1);  // daemonize the process so prints no more to the terminal
-        }
         for (i = 0; i < 3; i++)
             free(attach_argv[i]);
     } else {
@@ -236,7 +235,8 @@ char *invite_in_container(char *inviter, char *invitee) {
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/gen_invite %s %s "
         "2> gen_invite.log", inviter, invitee) >= 0);
     assert(invite_url = run_in_container(invite_command, inviter, false));
-    fprintf(stderr, "Invite Generated from '%s' to '%s': %s\n", inviter, invitee, invite_url);
+    PRINT_TEST_CASE_MSG("Invite Generated from '%s' to '%s': %s\n", inviter,
+        invitee, invite_url);
 
     return invite_url;
 }
@@ -247,10 +247,10 @@ void node_sim_in_container(char *node, char *device_class, char *invite_url) {
 
     assert(snprintf(node_sim_command, 200,
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/node_sim_%s %s %s %s "
-        "> node_sim_%s.log 2> node_sim_%s.log", node, node, device_class,
-        (invite_url) ? invite_url : "", node, node) >= 0);
+        "1>&2 2> node_sim_%s.log", node, node, device_class,
+        (invite_url) ? invite_url : "", node) >= 0);
     run_in_container(node_sim_command, node, true);
-    fprintf(stderr, "node_sim_%s started in Container\n", node);
+    PRINT_TEST_CASE_MSG("node_sim_%s started in Container\n", node);
 
     return;
 }
@@ -261,10 +261,10 @@ void node_step_in_container(char *node, char *sig) {
     char node_step_command[200];
 
     assert(snprintf(node_step_command, 200,
-        "/home/ubuntu/test/node_step.sh lt-node_sim_%s %s > node_step.log 2> node_step.log",
+        "/home/ubuntu/test/node_step.sh lt-node_sim_%s %s 1>&2 2> node_step.log",
         node, sig) >= 0);
     run_in_container(node_step_command, node, false);
-    fprintf(stderr, "Signal %s sent to node_sim_%s\n", sig, node);
+    PRINT_TEST_CASE_MSG("Signal %s sent to node_sim_%s\n", sig, node);
 
     return;
 }

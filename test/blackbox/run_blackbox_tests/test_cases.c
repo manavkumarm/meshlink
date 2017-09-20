@@ -50,15 +50,15 @@ bool test_steps_meta_conn_01(void) {
     execute_open(NUT_NODE_NAME, "1");
     execute_join(invite_nut);
     execute_start();
-    fprintf(stderr, "Waiting for peer to be connected\n");
+    PRINT_TEST_CASE_MSG("Waiting for peer to be connected\n");
     while (!meta_conn_status[1])
         sleep(1);
     node_step_in_container("peer", "SIGINT");
-    fprintf(stderr, "Waiting for peer to become unreachable\n");
+    PRINT_TEST_CASE_MSG("Waiting for peer to become unreachable\n");
     while (node_reachable_status[1])
         sleep(1);
     node_step_in_container("peer", "SIGINT");
-    fprintf(stderr, "Waiting 60 sec for peer to be re-connected\n");
+    PRINT_TEST_CASE_MSG("Waiting 60 sec for peer to be re-connected\n");
     for (i = 0; i < 60; i++) {
         if (meta_conn_status[1]) {
             result = true;

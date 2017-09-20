@@ -36,6 +36,8 @@ typedef struct black_box_state {
     bool test_result;
 } black_box_state_t;
 
+extern black_box_state_t *state_ptr;
+
 extern char *meshlink_root_path;
 
 /* Meshlink Mesh Handle */
