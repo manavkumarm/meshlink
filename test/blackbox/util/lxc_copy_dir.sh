@@ -24,5 +24,7 @@ containerdstdir=$3
 
 # Create destination directory inside container and copy source directory contents into it
 # by 'tar'ing the source directory and un'tar'ing it inside the container
+set -x
 lxc-attach -n ${containername} -- mkdir ${containerdstdir}
 tar -C ${srcdir} -c . | lxc-attach -n ${containername} -- tar -C ${containerdstdir} -xvp
+set +x

@@ -27,5 +27,6 @@ typedef bool (*test_step_func_t)(void);
 
 int setup_test(void **state);
 void execute_test(test_step_func_t step_func, void **state);
+int teardown_test(void **state);
 
 #endif // TEST_STEP_H

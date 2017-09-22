@@ -31,8 +31,8 @@ static char *lxc_path = "/home/manavkumarm/.local/share/lxc";
 void create_containers(char *node_names[], int num_nodes) {
     int i;
     char container_name[100];
-    struct lxc_container *first_container;
     int create_status, snapshot_status, snap_restore_status;
+    struct lxc_container *first_container;
 
     for(i = 0; i < num_nodes; i++) {
         assert(snprintf(container_name, 100, "run_%s", node_names[i]) >= 0);
@@ -58,23 +58,42 @@ void create_containers(char *node_names[], int num_nodes) {
     }
 }
 
-/* Return the handle to an existing container after finding it by node name */
-struct lxc_container *find_container(char *node_name) {
+/* Return the handle to an existing container after finding it by container name */
+struct lxc_container *find_container(char *name) {
     struct lxc_container **test_containers;
     char **container_names;
     int num_containers, i;
-    char *last_underscore;
 
+    fprintf(stderr, "In find_container(), name = %s\n", name);
     num_containers = list_all_containers(lxc_path, &container_names, &test_containers);
     assert(num_containers != -1);
 
-    for(i = 0; i < num_containers; i++)
-        if(strstr(container_names[i], "run_") &&
-                (last_underscore = strrchr(container_names[i], '_')) &&
-                strcmp(last_underscore + 1, node_name) == 0)
+    for(i = 0; i < num_containers; i++) {
+        fprintf(stderr, "Found Container %s\n", container_names[i]);
+        if(strcmp(container_names[i], name) == 0)
             return test_containers[i];
+    }
 
     return NULL;
+}
+
+/* Rename a Container */
+int rename_container(char *old_name, char *new_name) {
+    char rename_command[200];
+    int rename_status;
+    struct lxc_container *old_container;
+
+    /* Stop the old container if its still running */
+    assert(old_container = find_container(old_name));
+    old_container->shutdown(old_container, 5);
+    /* Call stop() in case shutdown() fails - one of these two will always succeed */
+    old_container->stop(old_container);
+    /* Rename the Container */
+    assert(snprintf(rename_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RENAME_SCRIPT
+        " %s %s %s", meshlink_root_path, lxc_path, old_name, new_name) >= 0);
+    rename_status = system(rename_command);
+
+    return rename_status;
 }
 
 /* Setup Containers required for a test
@@ -83,8 +102,10 @@ struct lxc_container *find_container(char *node_name) {
 void setup_containers(void **state) {
     black_box_state_t *test_state = (black_box_state_t *)(*state);
     int i, confbase_del_status;
-    char rename_command[200], build_command[200];
+    char build_command[200];
     struct lxc_container *test_container;
+    char container_find_name[100];
+    char container_new_name[100];
     int rename_status, build_status;
     char *ip;
     size_t ip_len;
@@ -95,24 +116,31 @@ void setup_containers(void **state) {
     PRINT_TEST_CASE_HEADER();
     for(i = 0; i < test_state->num_nodes; i++) {
         /* Locate the Container */
-        assert(test_container = find_container(test_state->node_names[i]));
+        assert(snprintf(container_find_name, 100, "run_%s", test_state->node_names[i]) >= 0);
+        assert(test_container = find_container(container_find_name));
 
         /* Stop the Container if it's running */
         test_container->shutdown(test_container, 5);
         /* Call stop() in case shutdown() fails
             One of these two calls will always succeed */
         test_container->stop(test_container);
-        /* Rename the Container to make it specific to this test case */
-        assert(snprintf(rename_command, 200, "%s/" LXC_UTIL_REL_PATH "/" LXC_RENAME_SCRIPT
-            " %s %s run_%s_%s", meshlink_root_path, lxc_path, test_container->name,
-            test_state->test_case_name, test_state->node_names[i]) >= 0);
-        PRINT_TEST_CASE_MSG("Container '%s' rename status: ", test_container->name);
-        rename_status = system(rename_command);
-        fprintf(stderr, "%d\n", rename_status);
-        assert(rename_status == 0);
+        /* Rename the Container to make it specific to this test case,
+            if a Container with the target name already exists, skip this step */
+        assert(snprintf(container_new_name, 100, "%s_%s", test_state->test_case_name,
+            test_state->node_names[i]) >= 0);
+        fprintf(stderr, "Rename to test container %s\n", container_new_name);
+        struct lxc_container *new_container = find_container(container_new_name);
+        fprintf(stderr, "find_container result: Found %s\n",
+            (new_container) ? new_container->name : "no container");
+        if (!new_container) {
+            PRINT_TEST_CASE_MSG("Container '%s' rename status: ", test_container->name);
+            rename_status = rename_container(test_container->name, container_new_name);
+            fprintf(stderr, "%d\n", rename_status);
+            assert(rename_status == 0);
+        }
 
         /* Find the Container again and start the Container */
-        assert(test_container = find_container(test_state->node_names[i]));
+        assert(test_container = find_container(container_new_name));
         assert(test_container->start(test_container, 0, NULL));
         /* Wait for the Container to acquire an IP Address */
         assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
@@ -181,13 +209,15 @@ void destroy_containers(void) {
 char *run_in_container(char *cmd, char *node, bool daemonize) {
     char attach_command[400];
     char *attach_argv[4];
+    char container_find_name[100];
     struct lxc_container *container;
     FILE *attach_fp;
     char *output = NULL;
     size_t output_len;
     int i;
 
-    assert(container = find_container(node));
+    assert(snprintf(container_find_name, 100, "%s_%s", state_ptr->test_case_name, node) >= 0);
+    assert(container = find_container(container_find_name));
     if (daemonize) {
         for (i = 0; i < 3; i++)
             assert(attach_argv[i] = malloc(200));

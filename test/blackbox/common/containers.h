@@ -24,7 +24,8 @@
 #include <lxc/lxccontainer.h>
 
 void create_containers(char *node_names[], int num_nodes);
-struct lxc_container *find_container(char *container_name);
+struct lxc_container *find_container(char *name);
+int rename_container(char *old_name, char *new_name);
 void setup_containers(void **state);
 void destroy_containers(void);
 char *run_in_container(char *cmd, char *node, bool daemonize);

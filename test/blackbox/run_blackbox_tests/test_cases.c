@@ -17,27 +17,30 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-
 #include "execute_tests.h"
 #include "test_cases.h"
 #include "../common/containers.h"
 #include "../common/test_step.h"
 #include "../common/common_handlers.h"
 
-//static void utest_sig_handler(int sig);
-//static sigjmp_buf stack;
-
-/* static void utest_sig_handler(int sig) {
-  longjmp(stack, 1);
-
-  return;
-} */
-
+/* Execute Meta-connections Test Case # 1 - re-connection to peer after disconnection when
+    connected via a third node */
 void test_case_meta_conn_01(void **state) {
     execute_test(test_steps_meta_conn_01, state);
     return;
 }
 
+/* Test Steps for Meta-connections Test Case # 1 - re-connection to peer after disconnection when
+    connected via a third node
+
+    Test Steps:
+    1. Run NUT, relay and peer nodes with relay as the inviting node
+    2. After connection to peer, stop the mesh in the peer node
+    3. After peer becomes unreachable, re-start the mesh in the peer node
+
+    Expected Result:
+    NUT is re-connected to peer
+*/
 bool test_steps_meta_conn_01(void) {
     char *invite_peer, *invite_nut;
     bool result = false;
@@ -67,9 +70,6 @@ bool test_steps_meta_conn_01(void) {
         sleep(1);
     }
 
-    node_step_in_container("peer", "SIGTERM");
-    node_step_in_container("relay", "SIGTERM");
-    execute_close();
     free(invite_peer);
     free(invite_nut);
 

@@ -51,7 +51,7 @@ geninviteltscript="${ltprefix}${geninvitepgm}"
 lxccopydirscript="lxc_copy_dir.sh"
 lxcrunscript="lxc_run.sh"
 #   Container Name
-containername="run_${testcase}_${nodename}"
+containername="${testcase}_${nodename}"
 
 # Run Libtool Wrapper Scripts once in their built paths in order to generate lt-<program> script inside .libs directory
 ${blackboxpath}/${geninvitepgm} >/dev/null 2>/dev/null

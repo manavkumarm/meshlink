@@ -56,7 +56,7 @@ int black_box_group0_teardown(void **state) {
 
 int main(int argc, char *argv[]) {
     const struct CMUnitTest blackbox_tests[] = {
-        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, NULL,
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
             (void *)test_meta_conn_1_state_ptr)
     };
     int num_tests = sizeof(blackbox_tests) / sizeof(blackbox_tests[0]);
