@@ -36,7 +36,8 @@ int main(int argc, char *argv[]) {
 
     /* Execute test steps */
     execute_open(argv[CMD_LINE_ARG_NODENAME], argv[CMD_LINE_ARG_DEVCLASS]);
-    execute_join(argv[CMD_LINE_ARG_INVITEURL]);
+    if (argv[CMD_LINE_ARG_INVITEURL])
+        execute_join(argv[CMD_LINE_ARG_INVITEURL]);
     execute_start();
 
     /* All test steps executed - wait for signals to stop/start or close the mesh */

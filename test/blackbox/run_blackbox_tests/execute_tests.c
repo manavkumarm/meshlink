@@ -40,7 +40,7 @@ void execute_test(test_step_func_t step_func, void **state) {
     black_box_state_t *st_ptr = (black_box_state_t *) (*state);
 
     printf("Running Test\n");
-    //st_ptr->test_result = step_func();
+    st_ptr->test_result = step_func();
 
     if (!st_ptr->test_result)
         fail();

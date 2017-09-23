@@ -64,12 +64,10 @@ struct lxc_container *find_container(char *name) {
     char **container_names;
     int num_containers, i;
 
-    fprintf(stderr, "In find_container(), name = %s\n", name);
     num_containers = list_all_containers(lxc_path, &container_names, &test_containers);
     assert(num_containers != -1);
 
     for(i = 0; i < num_containers; i++) {
-        fprintf(stderr, "Found Container %s\n", container_names[i]);
         if(strcmp(container_names[i], name) == 0)
             return test_containers[i];
     }
@@ -128,24 +126,21 @@ void setup_containers(void **state) {
             if a Container with the target name already exists, skip this step */
         assert(snprintf(container_new_name, 100, "%s_%s", test_state->test_case_name,
             test_state->node_names[i]) >= 0);
-        fprintf(stderr, "Rename to test container %s\n", container_new_name);
         struct lxc_container *new_container = find_container(container_new_name);
-        fprintf(stderr, "find_container result: Found %s\n",
-            (new_container) ? new_container->name : "no container");
         if (!new_container) {
             PRINT_TEST_CASE_MSG("Container '%s' rename status: ", test_container->name);
             rename_status = rename_container(test_container->name, container_new_name);
             fprintf(stderr, "%d\n", rename_status);
             assert(rename_status == 0);
+            assert(new_container = find_container(container_new_name));
         }
 
-        /* Find the Container again and start the Container */
-        assert(test_container = find_container(container_new_name));
-        assert(test_container->start(test_container, 0, NULL));
+        /* Start the Container */
+        assert(new_container->start(new_container, 0, NULL));
         /* Wait for the Container to acquire an IP Address */
         assert(snprintf(lxcls_command, 200, "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5",
-            test_container->name) >= 0);
-        PRINT_TEST_CASE_MSG("Waiting for Container '%s' to acquire IP", test_container->name);
+            new_container->name) >= 0);
+        PRINT_TEST_CASE_MSG("Waiting for Container '%s' to acquire IP", new_container->name);
         assert(ip = malloc(20));
         ip_len = sizeof(ip);
         ip_found = false;
@@ -165,7 +160,7 @@ void setup_containers(void **state) {
             " %s %s %s +x >/dev/null", meshlink_root_path, test_state->test_case_name,
             test_state->node_names[i], meshlink_root_path) >= 0);
         build_status = system(build_command);
-        PRINT_TEST_CASE_MSG("Container '%s' build Status: %d\n", test_container->name,
+        PRINT_TEST_CASE_MSG("Container '%s' build Status: %d\n", new_container->name,
             build_status);
         assert(build_status == 0);
     }
@@ -227,8 +222,10 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
         strncpy(attach_argv[2], container->name, 200);
         attach_argv[3] = NULL;
         /* Create a child process and run the command in that child process */
-        if (fork() == 0)
+        if (fork() == 0) {
+            assert(daemon(1, 0) != -1);    // Detach from the parent process
             assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
+        }
         for (i = 0; i < 3; i++)
             free(attach_argv[i]);
     } else {

@@ -31,12 +31,12 @@ void test_case_meta_conn_01(void **state) {
 }
 
 /* Test Steps for Meta-connections Test Case # 1 - re-connection to peer after disconnection when
-    connected via a third node
+    connected via a third (relay) node
 
     Test Steps:
     1. Run NUT, relay and peer nodes with relay as the inviting node
-    2. After connection to peer, stop the mesh in the peer node
-    3. After peer becomes unreachable, re-start the mesh in the peer node
+    2. After connection to peer, terminate the peer node's running instance
+    3. After peer becomes unreachable, wait 60 seconds then re-start the peer node's instance
 
     Expected Result:
     NUT is re-connected to peer
@@ -56,11 +56,13 @@ bool test_steps_meta_conn_01(void) {
     PRINT_TEST_CASE_MSG("Waiting for peer to be connected\n");
     while (!meta_conn_status[1])
         sleep(1);
-    node_step_in_container("peer", "SIGINT");
+    node_step_in_container("peer", "SIGTERM");
     PRINT_TEST_CASE_MSG("Waiting for peer to become unreachable\n");
     while (node_reachable_status[1])
         sleep(1);
-    node_step_in_container("peer", "SIGINT");
+    PRINT_TEST_CASE_MSG("Waiting 60 sec before re-starting the peer node\n");
+    sleep(60);
+    node_sim_in_container("peer", "1", NULL);
     PRINT_TEST_CASE_MSG("Waiting 60 sec for peer to be re-connected\n");
     for (i = 0; i < 60; i++) {
         if (meta_conn_status[1]) {

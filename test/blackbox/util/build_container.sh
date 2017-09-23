@@ -86,5 +86,7 @@ ${blackboxutilpath}/${lxcrunscript} "rm -rf ${containerconfbase}" ${containernam
 ${blackboxutilpath}/${lxcrunscript} "rm ${containerlogpath}/*.log" ${containername}
 #   Create Destination Folder and Copy Files
 ${blackboxutilpath}/${lxccopydirscript} ${mirrorfolderpath} ${containername} ${containerdstpath}
+#   Kill any running instances of the Node Simulation Program
+${blackboxutilpath}/${lxcrunscript} "${containerdstpath}/${nodestepscript} ${ltprefix}${nodesimpgm} SIGTERM 2>/dev/null" ${containername}
 
 set +x
