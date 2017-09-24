@@ -27,6 +27,7 @@
 #define LXC_UTIL_REL_PATH "test/blackbox/util"
 #define LXC_RENAME_SCRIPT "lxc_rename.sh"
 #define LXC_RUN_SCRIPT "lxc_run.sh"
+#define LXC_COPY_SCRIPT "lxc_copy_file.sh"
 #define LXC_BUILD_SCRIPT "build_container.sh"
 
 typedef struct black_box_state {

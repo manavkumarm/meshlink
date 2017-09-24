@@ -80,5 +80,53 @@ bool test_steps_meta_conn_01(void) {
 
 
 
+/* Execute Meta-connections Test Case # 2 - re-connection to peer after its IP changes */
+void test_case_meta_conn_02(void **state) {
+    execute_test(test_steps_meta_conn_02, state);
+    return;
+}
+
+/* Test Steps for Meta-connections Test Case # 2 - re-connection to peer after its IP changes
+
+    Test Steps:
+    1. Run NUT and peer nodes with NUT as the inviting node
+    2. After connection to peer, change the peer node's IP Address
+
+    Expected Result:
+    NUT is first disconnected from peer then automatically re-connected to peer
+*/
+bool test_steps_meta_conn_02(void) {
+    bool result = false;
+    char *invite_peer;
+    int i;
+
+    execute_open(NUT_NODE_NAME, "1");
+    execute_start();
+    invite_peer = execute_invite("peer");
+    node_sim_in_container("peer", "1", invite_peer);
+    PRINT_TEST_CASE_MSG("Waiting for peer to be connected\n");
+    while (!meta_conn_status[0])
+        sleep(1);
+    node_step_in_container("peer", "SIGTERM");
+    change_ip(0);
+    node_sim_in_container("peer", "1", NULL);
+    PRINT_TEST_CASE_MSG("Waiting for peer to become unreachable\n");
+    while (node_reachable_status[0])
+        sleep(1);
+    PRINT_TEST_CASE_MSG("Waiting 60 sec for peer to be re-connected\n");
+    for (i = 0; i < 60; i++) {
+        if (meta_conn_status[0]) {
+            result = true;
+            break;
+        }
+        sleep(1);
+    }
+
+    free(invite_peer);
+
+    return result;
+}
+
+
 
 

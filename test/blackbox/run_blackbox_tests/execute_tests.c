@@ -61,9 +61,10 @@ int teardown_test(void **state) {
             /* Rename Container to run_<node-name> - this allows it to be re-used for the
                 next test, otherwise it will be ignored assuming that it has been saved
                 for debugging */
-            assert(snprintf(container_old_name, 100, "%s_%s", st_ptr->test_case_name,
+            assert(snprintf(container_old_name, sizeof(container_old_name), "%s_%s",
+                st_ptr->test_case_name, st_ptr->node_names[i]) >= 0);
+            assert(snprintf(container_new_name, sizeof(container_new_name), "run_%s",
                 st_ptr->node_names[i]) >= 0);
-            assert(snprintf(container_new_name, 100, "run_%s", st_ptr->node_names[i]) >= 0);
             rename_status = rename_container(container_old_name, container_new_name);
             PRINT_TEST_CASE_MSG("Container '%s' rename status: %d\n", container_old_name,
                 rename_status);

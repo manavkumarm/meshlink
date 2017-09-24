@@ -74,23 +74,23 @@ void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t leve
 
     if (state_ptr && (strstr(text, "Connection") || strstr(text, "connection")))
         for (i = 0; i < state_ptr->num_nodes; i++) {
-            assert(snprintf(connection_match_msg, 100, "Connection with %s activated",
-                state_ptr->node_names[i]));
-            if (strcmp(connection_match_msg, text) == 0) {
+            assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
+                "Connection with %s", state_ptr->node_names[i]));
+            if (strstr(text, connection_match_msg) && strstr(text, "activated")) {
                 meta_conn_status[i] = true;
                 continue;
             }
 
-            assert(snprintf(connection_match_msg, 100, "Connection closed by %s",
-                state_ptr->node_names[i]));
-            if (strcmp(connection_match_msg, text) == 0) {
+            assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
+                "Connection closed by %s", state_ptr->node_names[i]));
+            if (strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;
             }
 
-            assert(snprintf(connection_match_msg, 100, "Closing connection with %s",
-                state_ptr->node_names[i]));
-            if (strcmp(connection_match_msg, text) == 0) {
+            assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
+                "Closing connection with %s", state_ptr->node_names[i]));
+            if (strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;
             }

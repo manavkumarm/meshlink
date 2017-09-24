@@ -28,6 +28,7 @@
 
 char *meshlink_root_path = "/home/manavkumarm/meshlink";
 
+/* State structure for Meta-connections Test Case #1 */
 static char *test_meta_conn_1_nodes[] = { "relay", "peer" };
 static black_box_state_t test_meta_conn_1_state = {
     /* test_case_name = */ "test_case_meta_conn_01",
@@ -36,6 +37,16 @@ static black_box_state_t test_meta_conn_1_state = {
     /* test_result (defaulted to) = */ false
 };
 static black_box_state_t *test_meta_conn_1_state_ptr = &test_meta_conn_1_state;
+
+/* State structure for Meta-connections Test Case #2 */
+static char *test_meta_conn_2_nodes[] = { "peer" };
+static black_box_state_t test_meta_conn_2_state = {
+    /* test_case_name = */ "test_case_meta_conn_02",
+    /* node_names = */ test_meta_conn_2_nodes,
+    /* num_nodes = */ 1,
+    /* test_result (defaulted to) = */ false
+};
+static black_box_state_t *test_meta_conn_2_state_ptr = &test_meta_conn_2_state;
 
 int black_box_group0_setup(void **state) {
     char *nodes[] = { "peer", "relay" };
@@ -57,7 +68,9 @@ int black_box_group0_teardown(void **state) {
 int main(int argc, char *argv[]) {
     const struct CMUnitTest blackbox_tests[] = {
         cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
-            (void *)test_meta_conn_1_state_ptr)
+            (void *)test_meta_conn_1_state_ptr),
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_02, setup_test, teardown_test,
+            (void *)test_meta_conn_2_state_ptr)
     };
     int num_tests = sizeof(blackbox_tests) / sizeof(blackbox_tests[0]);
     int failed_tests;

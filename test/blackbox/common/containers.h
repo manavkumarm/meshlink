@@ -32,5 +32,6 @@ char *run_in_container(char *cmd, char *node, bool daemonize);
 char *invite_in_container(char *inviter, char *invitee);
 void node_sim_in_container(char *node, char *device_class, char *invite_url);
 void node_step_in_container(char *node, char *sig);
+void change_ip(int node);
 
 #endif // CONTAINERS_H
