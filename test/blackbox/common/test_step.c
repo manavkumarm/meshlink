@@ -61,11 +61,13 @@ char *execute_invite(char *invitee) {
 void execute_join(char *invite_url) {
     bool join_status;
 
+    /* The inviting node may take a moment to open its listening port
+        This sleep() prevents meshlink_join() from failing when the listening port is not open */
+    /* TO DO: Replace this with code that actually checks for the port being open, if possible */
     PRINT_TEST_CASE_MSG("Sleeping 1 sec to allow inviting node to start listening...\n");
     sleep(1);
 
     join_status = meshlink_join(mesh_handle, invite_url);
-
     PRINT_TEST_CASE_MSG("meshlink_join status: %s\n", meshlink_strerror(meshlink_errno));
     assert(join_status);
 
@@ -83,6 +85,7 @@ void execute_start(void) {
 }
 
 void execute_stop(void) {
+    assert(mesh_handle);
     meshlink_stop(mesh_handle);
     mesh_started = false;
 
@@ -90,6 +93,7 @@ void execute_stop(void) {
 }
 
 void execute_close(void) {
+    assert(mesh_handle);
     meshlink_close(mesh_handle);
 
     return;

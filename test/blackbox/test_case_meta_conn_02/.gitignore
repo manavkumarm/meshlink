@@ -4,5 +4,7 @@
 bin
 obj
 test
+node_sim*
+.libs
 Makefile
 Makefile.in

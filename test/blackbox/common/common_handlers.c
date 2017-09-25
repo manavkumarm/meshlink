@@ -75,21 +75,21 @@ void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t leve
     if (state_ptr && (strstr(text, "Connection") || strstr(text, "connection")))
         for (i = 0; i < state_ptr->num_nodes; i++) {
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
-                "Connection with %s", state_ptr->node_names[i]));
+                "Connection with %s", state_ptr->node_names[i]) >= 0);
             if (strstr(text, connection_match_msg) && strstr(text, "activated")) {
                 meta_conn_status[i] = true;
                 continue;
             }
 
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
-                "Connection closed by %s", state_ptr->node_names[i]));
+                "Connection closed by %s", state_ptr->node_names[i]) >= 0);
             if (strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;
             }
 
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
-                "Closing connection with %s", state_ptr->node_names[i]));
+                "Closing connection with %s", state_ptr->node_names[i]) >= 0);
             if (strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;

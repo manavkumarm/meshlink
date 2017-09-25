@@ -23,12 +23,18 @@
 
 #include <lxc/lxccontainer.h>
 
-void create_containers(char *node_names[], int num_nodes);
+#define DAEMON_ARGV_LEN 200
+#define CONTAINER_SHUTDOWN_TIMEOUT 5
+
+extern char *lxc_path;
+extern char *lxc_bridge;
+
 struct lxc_container *find_container(char *name);
-int rename_container(char *old_name, char *new_name);
+void rename_container(char *old_name, char *new_name);
+char *run_in_container(char *cmd, char *node, bool daemonize);
+void create_containers(char *node_names[], int num_nodes);
 void setup_containers(void **state);
 void destroy_containers(void);
-char *run_in_container(char *cmd, char *node, bool daemonize);
 char *invite_in_container(char *inviter, char *invitee);
 void node_sim_in_container(char *node, char *device_class, char *invite_url);
 void node_step_in_container(char *node, char *sig);
