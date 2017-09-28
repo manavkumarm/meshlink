@@ -27,7 +27,6 @@
 #define CONTAINER_SHUTDOWN_TIMEOUT 5
 
 extern char *lxc_path;
-extern char *lxc_bridge;
 
 struct lxc_container *find_container(char *name);
 void rename_container(char *old_name, char *new_name);

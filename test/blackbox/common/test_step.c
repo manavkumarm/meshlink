@@ -99,3 +99,37 @@ void execute_close(void) {
     return;
 }
 
+void execute_change_ip(void) {
+    char *lxcbr_ip;
+    int last_byte;
+    char new_ip[20];
+    char *last_dot_in_ip;
+    int dnm_rest_status;
+    char *lxcbr_netmask;
+
+    /* Get existing IP Address of LXC Bridge Interface - the Host connects to Containers using
+        this IP Address, and Containers reply to this IP Address */
+    assert(lxcbr_ip = get_ip(lxc_bridge));
+
+    /* Set new IP Address by replacing the last byte with last byte + 1 */
+    strncpy(new_ip, lxcbr_ip, sizeof(new_ip));
+    assert(last_dot_in_ip = strrchr(new_ip, '.'));
+    last_byte = atoi(last_dot_in_ip + 1);
+    assert(snprintf(last_dot_in_ip + 1, 4, "%d", (last_byte > 253) ? 1 : (last_byte + 1)) >= 0);
+    /* TO DO: Check for IP conflicts with other interfaces and existing Containers */
+    /* Save the netmask first, then restore it after setting the new IP Address */
+    assert(lxcbr_netmask = get_netmask(lxc_bridge));
+    set_ip(lxc_bridge, new_ip);
+    set_netmask(lxc_bridge, lxcbr_netmask);
+
+    /* Restart the dnsmasq DHCP service and all Containers to make the IP change effective */
+    dnm_rest_status = system("service network-manager restart 1>&2");
+    PRINT_TEST_CASE_MSG("'network-manager' service restart status: %d\n", dnm_rest_status);
+    assert(dnm_rest_status == 0);
+
+    free(lxcbr_ip);
+    free(lxcbr_netmask);
+
+    return;
+}
+

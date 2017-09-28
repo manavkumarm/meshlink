@@ -23,14 +23,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <arpa/inet.h>
 #include "containers.h"
 #include "common_handlers.h"
 
 char *lxc_path = NULL;
-char *lxc_bridge = NULL;
 static char container_ips[10][100];
 
 /* Return the handle to an existing container after finding it by container name */
@@ -331,12 +327,9 @@ void node_step_in_container(char *node, char *sig) {
 /* Change the IP Address of the Container running 'node'
     Changes begin from X.X.X.254 and continue iteratively till an available address is found */
 void change_ip(int node) {
-    int get_ip_fd;
-    struct ifreq req_gateway_addr;
-    struct sockaddr_in *resp_gateway_addr;
-    char gateway_addr[20];
+    char *gateway_addr;
     char new_ip[20];
-    char *netmask = "255.255.255.0";    // TO DO: Get netmask from lxc bridge interface properties
+    char *netmask;
     char *last_dot_in_ip;
     int last_ip_byte = 254;
     FILE *if_fp;
@@ -347,13 +340,9 @@ void change_ip(int node) {
 
     /* Get IP Address of LXC Bridge Interface - this will be set up as the Gateway Address
         of the Static IP assigned to the Container */
-    req_gateway_addr.ifr_addr.sa_family = AF_INET;
-    strncpy(req_gateway_addr.ifr_name, lxc_bridge, IFNAMSIZ - 1);
-    assert((get_ip_fd = socket(AF_INET, SOCK_DGRAM, 0)) != -1);
-    assert(ioctl(get_ip_fd, SIOCGIFADDR, &req_gateway_addr) != -1);
-    resp_gateway_addr = (struct sockaddr_in *) &(req_gateway_addr.ifr_addr);
-    strncpy(gateway_addr, inet_ntoa(resp_gateway_addr->sin_addr), sizeof(gateway_addr));
-    assert(close(get_ip_fd) != -1);
+    assert(gateway_addr = get_ip(lxc_bridge));
+    /* Get Netmask of LXC Brdige Interface */
+    assert(netmask = get_netmask(lxc_bridge));
 
     /* Replace last byte of Container's IP with 254 to form the new Container IP */
     assert(container_ips[node]);

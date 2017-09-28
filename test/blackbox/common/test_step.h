@@ -31,5 +31,6 @@ void execute_join(char *invite_url);
 void execute_start(void);
 void execute_stop(void);
 void execute_close(void);
+void execute_change_ip(void);
 
 #endif // TEST_STEP_H

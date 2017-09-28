@@ -43,5 +43,9 @@ void meshlink_callback_node_status(meshlink_handle_t *mesh, meshlink_node_t *nod
                                         bool reachable);
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text);
+char *get_ip(const char *if_name);
+char *get_netmask(const char *if_name);
+void set_ip(const char *if_name, const char *new_ip);
+void set_netmask(const char *if_name, const char *new_ip);
 
 #endif // COMMON_HANDLERS_H

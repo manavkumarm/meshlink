@@ -56,23 +56,23 @@ int black_box_group0_setup(void **state) {
     int num_nodes = sizeof(nodes) / sizeof(nodes[0]);
 
     printf("Creating Containers\n");
-    destroy_containers();
-    create_containers(nodes, num_nodes);
+    //destroy_containers();
+    //create_containers(nodes, num_nodes);
 
     return 0;
 }
 
 int black_box_group0_teardown(void **state) {
     printf("Destroying Containers\n");
-    destroy_containers();
+    //destroy_containers();
 
     return 0;
 }
 
 int main(int argc, char *argv[]) {
     const struct CMUnitTest blackbox_group0_tests[] = {
-        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
-            (void *)&test_meta_conn_1_state),
+        //cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
+        //    (void *)&test_meta_conn_1_state),
         cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_02, setup_test, teardown_test,
             (void *)&test_meta_conn_2_state)
     };

@@ -23,9 +23,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <arpa/inet.h>
 #include "test_step.h"
 #include "common_handlers.h"
 
+char *lxc_bridge = NULL;
 black_box_state_t *state_ptr = NULL;
 
 bool meta_conn_status[10];
@@ -47,6 +52,108 @@ void mesh_stop_start_signal_handler(int a) {
 void setup_signals(void) {
     signal(SIGTERM, mesh_close_signal_handler);
     signal(SIGINT, mesh_stop_start_signal_handler);
+
+    return;
+}
+
+/* Return the IP Address of the Interface 'if_name'
+    The caller is responsible for freeing the dynamically allocated string that is returned */
+char *get_ip(const char *if_name) {
+    int get_ip_fd;
+    struct ifreq req_if;
+    struct sockaddr_in *resp_if_addr;
+    char *ip;
+
+    /* Get IP Address of LXC Bridge Interface - this will be set up as the Gateway Address
+        of the Static IP assigned to the Container */
+    memset(&req_if, 0, sizeof(req_if));
+    req_if.ifr_addr.sa_family = AF_INET;
+    strncpy(req_if.ifr_name, if_name, IFNAMSIZ - 1);
+
+    assert((get_ip_fd = socket(AF_INET, SOCK_DGRAM, 0)) != -1);
+    assert(ioctl(get_ip_fd, SIOCGIFADDR, &req_if) != -1);
+
+    resp_if_addr = (struct sockaddr_in *) &(req_if.ifr_addr);
+    assert(ip = malloc(20));
+    strncpy(ip, inet_ntoa(resp_if_addr->sin_addr), 20);
+
+    assert(close(get_ip_fd) != -1);
+
+    return ip;
+}
+
+/* Return the IP Address of the Interface 'if_name'
+    The caller is responsible for freeing the dynamically allocated string that is returned */
+char *get_netmask(const char *if_name) {
+    int get_nm_fd;
+    struct ifreq req_if;
+    struct sockaddr_in *resp_if_netmask;
+    char *netmask;
+
+    /* Get IP Address of LXC Bridge Interface - this will be set up as the Gateway Address
+        of the Static IP assigned to the Container */
+    memset(&req_if, 0, sizeof(req_if));
+    req_if.ifr_addr.sa_family = AF_INET;
+    strncpy(req_if.ifr_name, if_name, IFNAMSIZ - 1);
+
+    assert((get_nm_fd = socket(AF_INET, SOCK_DGRAM, 0)) != -1);
+    assert(ioctl(get_nm_fd, SIOCGIFNETMASK, &req_if) != -1);
+
+    resp_if_netmask = (struct sockaddr_in *) &(req_if.ifr_addr);
+    assert(netmask = malloc(20));
+    strncpy(netmask, inet_ntoa(resp_if_netmask->sin_addr), 20);
+
+    assert(close(get_nm_fd) != -1);
+
+    return netmask;
+}
+
+/* Change the IP Address of an interface */
+void set_ip(const char *if_name, const char *new_ip) {
+    int set_ip_fd;
+    struct ifreq req_if;
+    struct sockaddr_in new_if_addr;
+
+    /* Get IP Address of LXC Bridge Interface - this will be set up as the Gateway Address
+        of the Static IP assigned to the Container */
+    memset(&new_if_addr, 0, sizeof(new_if_addr));
+    new_if_addr.sin_family = AF_INET;
+    assert(inet_aton(new_ip, &new_if_addr.sin_addr) != 0);
+
+    memset(&req_if, 0, sizeof(req_if));
+    strncpy(req_if.ifr_name, if_name, IFNAMSIZ - 1);
+    memcpy(&req_if.ifr_addr, &new_if_addr, sizeof(req_if.ifr_addr));
+
+    assert((set_ip_fd = socket(AF_INET, SOCK_STREAM, 0)) != -1);
+    assert(ioctl(set_ip_fd, SIOCSIFADDR, &req_if) != -1);
+    assert(close(set_ip_fd) != -1);
+    /* TO DO: Get the original netmask and set it again, in case the IP change affects the
+        netmask */
+
+    return;
+}
+
+/* Change the Netmask of an interface */
+void set_netmask(const char *if_name, const char *new_netmask) {
+    int set_nm_fd;
+    struct ifreq req_if;
+    struct sockaddr_in new_if_netmask;
+
+    /* Get IP Address of LXC Bridge Interface - this will be set up as the Gateway Address
+        of the Static IP assigned to the Container */
+    memset(&new_if_netmask, 0, sizeof(new_if_netmask));
+    new_if_netmask.sin_family = AF_INET;
+    assert(inet_aton(new_netmask, &new_if_netmask.sin_addr) != 0);
+
+    memset(&req_if, 0, sizeof(req_if));
+    strncpy(req_if.ifr_name, if_name, IFNAMSIZ - 1);
+    memcpy(&req_if.ifr_netmask, &new_if_netmask, sizeof(req_if.ifr_netmask));
+
+    assert((set_nm_fd = socket(AF_INET, SOCK_STREAM, 0)) != -1);
+    assert(ioctl(set_nm_fd, SIOCSIFNETMASK, &req_if) != -1);
+    assert(close(set_nm_fd) != -1);
+    /* TO DO: Get the original netmask and set it again, in case the IP change affects the
+        netmask */
 
     return;
 }

@@ -102,8 +102,9 @@ void test_case_meta_conn_02(void **state) {
     NUT is first disconnected from peer then automatically re-connected to peer
 */
 bool test_steps_meta_conn_02(void) {
-    char *invite_peer, *invite_nut;
     bool result = false;
+    execute_change_ip();
+    /* char *invite_peer, *invite_nut;
     int i;
 
     invite_peer = invite_in_container("relay", "peer");
@@ -113,11 +114,12 @@ bool test_steps_meta_conn_02(void) {
     execute_open(NUT_NODE_NAME, "1");
     execute_join(invite_nut);
     execute_start();
-    PRINT_TEST_CASE_MSG("Waiting for peer to be connected\n");
-    /* TO DO: Implement this with a timeout */
+    PRINT_TEST_CASE_MSG("Waiting for peer to be connected\n"); */
+    /* TO DO: Implement this with a timeout *//*
     while (!meta_conn_status[1])
         sleep(1);
     change_ip(1);
+    node_sim_in_container("peer", "1", NULL);
     PRINT_TEST_CASE_MSG("Waiting 60 sec for peer to be re-connected\n");
     for (i = 0; i < 60; i++) {
         if (meta_conn_status[1]) {
@@ -128,7 +130,7 @@ bool test_steps_meta_conn_02(void) {
     }
 
     free(invite_peer);
-    free(invite_nut);
+    free(invite_nut); */
 
     return result;
 }
