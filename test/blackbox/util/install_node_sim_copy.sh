@@ -1,3 +1,3 @@
-cp ../test_case_meta_conn_01/node_sim_${1} .
+cp ../${1}/node_sim_${2} .
 mkdir .libs 2>/dev/null
-cp ../test_case_meta_conn_01/.libs/*node_sim_${1}* .libs
+cp ../${1}/.libs/*node_sim_${2}* .libs

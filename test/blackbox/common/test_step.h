@@ -23,8 +23,6 @@
 
 #include "../../../src/meshlink.h"
 
-#define NUT_NODE_NAME "nut"
-
 meshlink_handle_t *execute_open(char *node_name, char *dev_class);
 char *execute_invite(char *invitee);
 void execute_join(char *invite_url);

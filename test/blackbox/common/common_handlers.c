@@ -158,15 +158,50 @@ void set_netmask(const char *if_name, const char *new_netmask) {
     return;
 }
 
+/* Bring a network interface down (before making changes such as the IP Address) */
+void stop_nw_intf(const char *if_name) {
+    int set_flags_fd;
+    struct ifreq req_if_set_flags;
+
+    /* Set the flags on the Interface to bring it down */
+    memset(&req_if_set_flags, 0, sizeof(req_if_set_flags));
+    strncpy(req_if_set_flags.ifr_name, if_name, IFNAMSIZ - 1);
+    req_if_set_flags.ifr_flags &= (~IFF_UP);
+
+    assert((set_flags_fd = socket(AF_INET, SOCK_STREAM, 0)) != -1);
+    assert(ioctl(set_flags_fd, SIOCSIFFLAGS, &req_if_set_flags) != -1);
+    assert(close(set_flags_fd) != -1);
+
+    return;
+}
+
+/* Bring a network interface up (after bringing it down and making changes such as
+    the IP Address) */
+void start_nw_intf(const char *if_name) {
+    int set_flags_fd;
+    struct ifreq req_if_set_flags;
+
+    /* Set the flags on the Interface to bring it up */
+    memset(&req_if_set_flags, 0, sizeof(req_if_set_flags));
+    strncpy(req_if_set_flags.ifr_name, if_name, IFNAMSIZ - 1);
+    req_if_set_flags.ifr_flags |= IFF_UP;
+
+    assert((set_flags_fd = socket(AF_INET, SOCK_STREAM, 0)) != -1);
+    assert(ioctl(set_flags_fd, SIOCSIFFLAGS, &req_if_set_flags) != -1);
+    assert(close(set_flags_fd) != -1);
+
+    return;
+}
+
 void meshlink_callback_node_status(meshlink_handle_t *mesh, meshlink_node_t *node,
                                         bool reachable) {
     int i;
 
     fprintf(stderr, "Node %s became %s\n", node->name, (reachable) ? "reachable" : "unreachable");
 
-    if (state_ptr)
-        for (i = 0; i < state_ptr->num_nodes; i++)
-            if (strcmp(node->name, state_ptr->node_names[i]) == 0)
+    if(state_ptr)
+        for(i = 0; i < state_ptr->num_nodes; i++)
+            if(strcmp(node->name, state_ptr->node_names[i]) == 0)
                 node_reachable_status[i] = reachable;
 
     return;
@@ -179,25 +214,32 @@ void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t leve
 
     fprintf(stderr, "meshlink>> %s\n", text);
 
-    if (state_ptr && (strstr(text, "Connection") || strstr(text, "connection")))
-        for (i = 0; i < state_ptr->num_nodes; i++) {
+    if(state_ptr && (strstr(text, "Connection") || strstr(text, "connection")))
+        for(i = 0; i < state_ptr->num_nodes; i++) {
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
                 "Connection with %s", state_ptr->node_names[i]) >= 0);
-            if (strstr(text, connection_match_msg) && strstr(text, "activated")) {
+            if(strstr(text, connection_match_msg) && strstr(text, "activated")) {
+                meta_conn_status[i] = true;
+                continue;
+            }
+
+            assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
+                "Already connected to %s", state_ptr->node_names[i]) >= 0);
+            if(strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = true;
                 continue;
             }
 
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
                 "Connection closed by %s", state_ptr->node_names[i]) >= 0);
-            if (strstr(text, connection_match_msg)) {
+            if(strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;
             }
 
             assert(snprintf(connection_match_msg, sizeof(connection_match_msg),
                 "Closing connection with %s", state_ptr->node_names[i]) >= 0);
-            if (strstr(text, connection_match_msg)) {
+            if(strstr(text, connection_match_msg)) {
                 meta_conn_status[i] = false;
                 continue;
             }

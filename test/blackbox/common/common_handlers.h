@@ -24,9 +24,9 @@
 
 #include "common_types.h"
 
-#define PRINT_TEST_CASE_HEADER()        if (state_ptr) \
+#define PRINT_TEST_CASE_HEADER()        if(state_ptr) \
                                             fprintf(stderr, "[ %s ]\n", state_ptr->test_case_name)
-#define PRINT_TEST_CASE_MSG(...)        if (state_ptr) \
+#define PRINT_TEST_CASE_MSG(...)        if(state_ptr) \
                                             do { \
                                                 fprintf(stderr, "[ %s ] ", \
                                                     state_ptr->test_case_name); \
@@ -36,6 +36,12 @@
 extern bool meta_conn_status[];
 extern bool node_reachable_status[];
 
+char *get_ip(const char *if_name);
+char *get_netmask(const char *if_name);
+void stop_nw_intf(const char *if_name);
+void start_nw_intf(const char *if_name);
+void set_ip(const char *if_name, const char *new_ip);
+void set_netmask(const char *if_name, const char *new_ip);
 void mesh_close_signal_handler(int a);
 void mesh_stop_start_signal_handler(int a);
 void setup_signals(void);
@@ -43,9 +49,5 @@ void meshlink_callback_node_status(meshlink_handle_t *mesh, meshlink_node_t *nod
                                         bool reachable);
 void meshlink_callback_logger(meshlink_handle_t *mesh, meshlink_log_level_t level,
                                       const char *text);
-char *get_ip(const char *if_name);
-char *get_netmask(const char *if_name);
-void set_ip(const char *if_name, const char *new_ip);
-void set_netmask(const char *if_name, const char *new_ip);
 
 #endif // COMMON_HANDLERS_H

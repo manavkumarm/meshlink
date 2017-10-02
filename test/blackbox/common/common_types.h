@@ -24,6 +24,8 @@
 #include <stdbool.h>
 #include "../../../src/meshlink.h"
 
+#define NUT_NODE_NAME "nut"
+
 #define LXC_UTIL_REL_PATH "test/blackbox/util"
 #define LXC_RENAME_SCRIPT "lxc_rename.sh"
 #define LXC_RUN_SCRIPT "lxc_run.sh"
@@ -38,6 +40,8 @@ typedef struct black_box_state {
 } black_box_state_t;
 
 extern char *lxc_bridge;
+
+extern char *eth_if_name;
 
 extern black_box_state_t *state_ptr;
 

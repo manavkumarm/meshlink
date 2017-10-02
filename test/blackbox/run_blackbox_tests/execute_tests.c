@@ -33,7 +33,7 @@ int setup_test(void **state) {
 
     printf("Setting up Containers\n");
     state_ptr = (black_box_state_t *)(*state);
-    for (i = 0; i < state_ptr->num_nodes; i++) {
+    for(i = 0; i < state_ptr->num_nodes; i++) {
         meta_conn_status[i] = false;
         node_reachable_status[i] = false;
     }
@@ -49,7 +49,7 @@ void execute_test(test_step_func_t step_func, void **state) {
     printf("Running Test\n");
     test_state->test_result = step_func();
 
-    if (!test_state->test_result)
+    if(!test_state->test_result)
         fail();
 
     return;
@@ -60,9 +60,9 @@ int teardown_test(void **state) {
     char container_old_name[100], container_new_name[100];
     int i;
 
-    if (test_state->test_result) {
+    if(test_state->test_result) {
         PRINT_TEST_CASE_MSG("Test successful! Shutting down nodes.\n");
-        for (i = 0; i < test_state->num_nodes; i++) {
+        for(i = 0; i < test_state->num_nodes; i++) {
             /* Shut down node */
             node_step_in_container(test_state->node_names[i], "SIGTERM");
             /* Rename Container to run_<node-name> - this allows it to be re-used for the

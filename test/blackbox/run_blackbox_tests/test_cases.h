@@ -27,5 +27,11 @@ void test_case_meta_conn_01(void **state);
 bool test_steps_meta_conn_01(void);
 void test_case_meta_conn_02(void **state);
 bool test_steps_meta_conn_02(void);
+void test_case_meta_conn_03(void **state);
+bool test_steps_meta_conn_03(void);
+void test_case_meta_conn_04(void **state);
+bool test_steps_meta_conn_04(void);
+void test_case_meta_conn_05(void **state);
+bool test_steps_meta_conn_05(void);
 
 #endif // TEST_STEP_H

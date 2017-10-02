@@ -92,8 +92,8 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
     /* Run the command within the Container, either as a daemon or foreground process */
     /* TO DO: Perform this operation using the LXC API - currently does not work using the API
         Need to determine why it doesn't work, and make it work */
-    if (daemonize) {
-        for (i = 0; i < 3; i++)
+    if(daemonize) {
+        for(i = 0; i < 3; i++)
             assert(attach_argv[i] = malloc(DAEMON_ARGV_LEN));
         assert(snprintf(attach_argv[0], DAEMON_ARGV_LEN, "%s/" LXC_UTIL_REL_PATH "/" LXC_RUN_SCRIPT,
             meshlink_root_path) >= 0);
@@ -101,11 +101,11 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
         strncpy(attach_argv[2], container->name, DAEMON_ARGV_LEN);
         attach_argv[3] = NULL;
         /* To daemonize, create a child process and detach it from its parent (this program) */
-        if (fork() == 0) {
+        if(fork() == 0) {
             assert(daemon(1, 0) != -1);    // Detach from the parent process
             assert(execv(attach_argv[0], attach_argv) != -1);   // Run exec() in the child process
         }
-        for (i = 0; i < 3; i++)
+        for(i = 0; i < 3; i++)
             free(attach_argv[i]);
     } else {
         assert(snprintf(attach_command, sizeof(attach_command),
@@ -116,9 +116,9 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
             return it, otherwise return NULL */
         assert(output = malloc(100));
         output_len = sizeof(output);
-        if (getline(&output, &output_len, attach_fp) != -1) {
+        if(getline(&output, &output_len, attach_fp) != -1) {
             i = strlen(output) - 1;
-            while (output[i] == '\n' || output[i] == '\r')
+            while(output[i] == '\n' || output[i] == '\r')
                 i--;
             output[i + 1] = '\0';
         }
@@ -130,6 +130,46 @@ char *run_in_container(char *cmd, char *node, bool daemonize) {
     }
 
     return output;
+}
+
+/* Wait for a starting Container to obtain an IP Address, then save that IP for future use */
+void container_wait_ip(int node) {
+    char container_name[100], lxcls_command[200];
+    struct lxc_container *test_container;
+    char *ip;
+    size_t ip_len;
+    int i;
+    bool ip_found;
+    FILE *lxcls_fp;
+
+    assert(snprintf(container_name, sizeof(container_name), "%s_%s", state_ptr->test_case_name,
+        state_ptr->node_names[node]) >= 0);
+    assert(test_container = find_container(container_name));
+    assert(snprintf(lxcls_command, sizeof(lxcls_command),
+        "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5", test_container->name) >= 0);
+    PRINT_TEST_CASE_MSG("Waiting for Container '%s' to acquire IP\n", test_container->name);
+    assert(ip = malloc(20));
+    ip_len = sizeof(ip);
+    ip_found = false;
+    while(!ip_found) {
+        assert(lxcls_fp = popen(lxcls_command, "r"));   // Run command
+        assert(getline((char **)&ip, &ip_len, lxcls_fp) != -1); // Read its output
+        /* Strip newlines and carriage returns from output */
+        i = strlen(ip) - 1;
+        while(ip[i] == '\n' || ip[i] == '\r')
+            i--;
+        ip[i + 1] = '\0';
+        ip_found = (strcmp(ip, "-") != 0);  // If the output is not "-", IP has been acquired
+        assert(pclose(lxcls_fp) != -1);
+        sleep(1);
+    }
+    strncpy(container_ips[node], ip, sizeof(container_ips[node])); // Save the IP for future use
+    PRINT_TEST_CASE_MSG("Node '%s' has IP Address %s\n", state_ptr->node_names[node],
+        container_ips[node]);
+
+    free(ip);
+
+    return;
 }
 
 /* Create all required test containers */
@@ -170,24 +210,29 @@ void create_containers(char *node_names[], int num_nodes) {
     after setting the state of the test case to an instance of black_box_state_t */
 void setup_containers(void **state) {
     black_box_state_t *test_state = (black_box_state_t *)(*state);
-    int i, j, confbase_del_status;
+    int i, confbase_del_status;
     char build_command[200];
     struct lxc_container *test_container, *new_container;
     char container_find_name[100];
     char container_new_name[100];
-    int build_status;
-    char *ip;
-    size_t ip_len;
-    bool ip_found;
-    FILE *lxcls_fp;
-    char lxcls_command[200];
+    int create_status, build_status;
+    char *nut_ip;
 
     PRINT_TEST_CASE_HEADER();
     for(i = 0; i < test_state->num_nodes; i++) {
-        /* Stop the Container if it's running */
+        /* Find the run_<node-name> Container or create it if it doesn't exist */
         assert(snprintf(container_find_name, sizeof(container_find_name), "run_%s",
             test_state->node_names[i]) >= 0);
-        assert(test_container = find_container(container_find_name));
+        if(!(test_container = find_container(container_find_name))) {
+            assert(test_container = lxc_container_new(container_find_name, NULL));
+            assert(!test_container->is_defined(test_container));
+            create_status = test_container->createl(test_container, "download", NULL, NULL,
+                LXC_CREATE_QUIET, "-d", "ubuntu", "-r", "trusty", "-a", "i386", NULL);
+            PRINT_TEST_CASE_MSG("Container '%s' create status: %d - %s\n", container_find_name,
+                test_container->error_num, test_container->error_string);
+            assert(create_status);
+        }
+        /* Stop the Container if it's running */
         test_container->shutdown(test_container, CONTAINER_SHUTDOWN_TIMEOUT);
         /* Call stop() in case shutdown() fails
             One of these two calls will always succeed */
@@ -196,39 +241,13 @@ void setup_containers(void **state) {
             if a Container with the target name already exists, skip this step */
         assert(snprintf(container_new_name, sizeof(container_new_name), "%s_%s",
             test_state->test_case_name, test_state->node_names[i]) >= 0);
-        if (!(new_container = find_container(container_new_name))) {
+        if(!(new_container = find_container(container_new_name))) {
             rename_container(test_container->name, container_new_name);
             assert(new_container = find_container(container_new_name));
         }
 
         /* Start the Container */
         assert(new_container->start(new_container, 0, NULL));
-        /* Wait for the Container to acquire an IP Address - test steps relying on networking
-            will not work until the Container has an IP */
-        assert(snprintf(lxcls_command, sizeof(lxcls_command),
-            "lxc-ls -f | grep %s | tr -s ' ' | cut -d ' ' -f 5", new_container->name) >= 0);
-        PRINT_TEST_CASE_MSG("Waiting for Container '%s' to acquire IP", new_container->name);
-        assert(ip = malloc(20));
-        ip_len = sizeof(ip);
-        ip_found = false;
-        while (!ip_found) {
-            assert(lxcls_fp = popen(lxcls_command, "r"));   // Run command
-            assert(getline((char **)&ip, &ip_len, lxcls_fp) != -1); // Read its output
-            /* Strip newlines and carriage returns from output */
-            j = strlen(ip) - 1;
-            while (ip[j] == '\n' || ip[j] == '\r')
-                j--;
-            ip[j + 1] = '\0';
-            ip_found = (strcmp(ip, "-") != 0);  // If the output is not "-", IP has been acquired
-            assert(pclose(lxcls_fp) != -1);
-            fprintf(stderr, ".");
-            sleep(1);
-        }
-        fprintf(stderr, "\n");
-        strncpy(container_ips[i], ip, sizeof(container_ips[i])); // Save the IP for future use
-        PRINT_TEST_CASE_MSG("Node '%s' has IP Address %s\n", test_state->node_names[i],
-            container_ips[i]);
-
         /* Build the Container by copying required files into it */
         assert(snprintf(build_command, sizeof(build_command),
             "%s/" LXC_UTIL_REL_PATH "/" LXC_BUILD_SCRIPT " %s %s %s +x >/dev/null",
@@ -238,6 +257,11 @@ void setup_containers(void **state) {
         PRINT_TEST_CASE_MSG("Container '%s' build Status: %d\n", new_container->name,
             build_status);
         assert(build_status == 0);
+        /* Restart the Container after building it and wait for it to acquire an IP */
+        new_container->shutdown(new_container, CONTAINER_SHUTDOWN_TIMEOUT);
+        new_container->stop(new_container);
+        new_container->start(new_container, 0, NULL);
+        container_wait_ip(i);
     }
 
     /* Delete any existing NUT confbase folder - every test case starts on a clean state */
@@ -245,7 +269,10 @@ void setup_containers(void **state) {
     PRINT_TEST_CASE_MSG("Confbase Folder Delete Status: %d\n", confbase_del_status);
     assert(confbase_del_status == 0);
 
-    free(ip);
+    assert(nut_ip = get_ip(eth_if_name));
+    PRINT_TEST_CASE_MSG("Node '%s' has IP Address %s\n", NUT_NODE_NAME, nut_ip);
+
+    free(nut_ip);
 
     return;
 }
@@ -280,6 +307,27 @@ void destroy_containers(void) {
     return;
 }
 
+/* Restart all the Containers being used in the current test case i.e. Containers with
+    names beginning with <test-case-name>_<node-name> */
+void restart_all_containers(void) {
+    char container_name[100];
+    struct lxc_container *test_container;
+    int i;
+
+    for(i = 0; i < state_ptr->num_nodes; i++) {
+        /* Shutdown, then start the Container, then wait for it to acquire an IP Address */
+        assert(snprintf(container_name, sizeof(container_name), "%s_%s", state_ptr->test_case_name,
+            state_ptr->node_names[i]) >= 0);
+        assert(test_container = find_container(container_name));
+        test_container->shutdown(test_container, CONTAINER_SHUTDOWN_TIMEOUT);
+        test_container->stop(test_container);
+        test_container->start(test_container, 0, NULL);
+        container_wait_ip(i);
+    }
+
+    return;
+}
+
 /* Run the gen_invite command inside the 'inviter' container to generate an invite
     for 'invitee', and return the generated invite which is output on the terminal */
 char *invite_in_container(char *inviter, char *invitee) {
@@ -302,7 +350,7 @@ void node_sim_in_container(char *node, char *device_class, char *invite_url) {
 
     assert(snprintf(node_sim_command, sizeof(node_sim_command),
         "LD_LIBRARY_PATH=/home/ubuntu/test/.libs /home/ubuntu/test/node_sim_%s %s %s %s "
-        "1>&2 2> node_sim_%s.log", node, node, device_class,
+        "1>&2 2>> node_sim_%s.log", node, node, device_class,
         (invite_url) ? invite_url : "", node) >= 0);
     run_in_container(node_sim_command, node, true);
     PRINT_TEST_CASE_MSG("node_sim_%s started in Container\n", node);
@@ -352,7 +400,7 @@ void change_ip(int node) {
     /* Check that the new IP does not match the Container's existing IP
         if it does, iterate till it doesn't */
     /* TO DO: Make sure the IP does not conflict with any other running Container */
-    while (strcmp(new_ip, container_ips[node]) == 0) {
+    while(strcmp(new_ip, container_ips[node]) == 0) {
         last_ip_byte--;
         assert(snprintf(last_dot_in_ip + 1, 4, "%d", last_ip_byte) >= 0);
     }

@@ -30,6 +30,7 @@
 #define CMD_LINE_ARG_MESHLINK_ROOT_PATH 1
 #define CMD_LINE_ARG_LXC_PATH 2
 #define CMD_LINE_ARG_LXC_BRIDGE_NAME 3
+#define CMD_LINE_ARG_ETH_IF_NAME 4
 
 char *meshlink_root_path = NULL;
 
@@ -51,39 +52,73 @@ static black_box_state_t test_meta_conn_2_state = {
     /* test_result (defaulted to) = */ false
 };
 
+/* State structure for Meta-connections Test Case #3 */
+static char *test_meta_conn_3_nodes[] = { "relay", "peer" };
+static black_box_state_t test_meta_conn_3_state = {
+    /* test_case_name = */ "test_case_meta_conn_03",
+    /* node_names = */ test_meta_conn_3_nodes,
+    /* num_nodes = */ 2,
+    /* test_result (defaulted to) = */ false
+};
+
+/* State structure for Meta-connections Test Case #4 */
+static char *test_meta_conn_4_nodes[] = { "peer" };
+static black_box_state_t test_meta_conn_4_state = {
+    /* test_case_name = */ "test_case_meta_conn_04",
+    /* node_names = */ test_meta_conn_4_nodes,
+    /* num_nodes = */ 1,
+    /* test_result (defaulted to) = */ false
+};
+
+/* State structure for Meta-connections Test Case #5 */
+static char *test_meta_conn_5_nodes[] = { "peer" };
+static black_box_state_t test_meta_conn_5_state = {
+    /* test_case_name = */ "test_case_meta_conn_05",
+    /* node_names = */ test_meta_conn_5_nodes,
+    /* num_nodes = */ 1,
+    /* test_result (defaulted to) = */ false
+};
+
 int black_box_group0_setup(void **state) {
     char *nodes[] = { "peer", "relay" };
     int num_nodes = sizeof(nodes) / sizeof(nodes[0]);
 
     printf("Creating Containers\n");
-    //destroy_containers();
-    //create_containers(nodes, num_nodes);
+    destroy_containers();
+    create_containers(nodes, num_nodes);
 
     return 0;
 }
 
 int black_box_group0_teardown(void **state) {
     printf("Destroying Containers\n");
-    //destroy_containers();
+    destroy_containers();
 
     return 0;
 }
 
 int main(int argc, char *argv[]) {
     const struct CMUnitTest blackbox_group0_tests[] = {
-        //cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
-        //    (void *)&test_meta_conn_1_state),
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_01, setup_test, teardown_test,
+            (void *)&test_meta_conn_1_state),
         cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_02, setup_test, teardown_test,
-            (void *)&test_meta_conn_2_state)
+            (void *)&test_meta_conn_2_state),
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_03, setup_test, teardown_test,
+            (void *)&test_meta_conn_3_state),
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_04, setup_test, teardown_test,
+            (void *)&test_meta_conn_4_state),
+        cmocka_unit_test_prestate_setup_teardown(test_case_meta_conn_05, setup_test, teardown_test,
+            (void *)&test_meta_conn_5_state)
     };
     int num_tests = sizeof(blackbox_group0_tests) / sizeof(blackbox_group0_tests[0]);
     int failed_tests;
 
     /* Set configuration */
-    assert(argc >= (CMD_LINE_ARG_LXC_BRIDGE_NAME + 1));
+    assert(argc >= (CMD_LINE_ARG_ETH_IF_NAME + 1));
     meshlink_root_path = argv[CMD_LINE_ARG_MESHLINK_ROOT_PATH];
     lxc_path = argv[CMD_LINE_ARG_LXC_PATH];
     lxc_bridge = argv[CMD_LINE_ARG_LXC_BRIDGE_NAME];
+    eth_if_name = argv[CMD_LINE_ARG_ETH_IF_NAME];
 
     failed_tests = cmocka_run_group_tests(blackbox_group0_tests, black_box_group0_setup,
         black_box_group0_teardown);

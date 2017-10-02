@@ -49,6 +49,7 @@ nodesimltscript="${ltprefix}${nodesimpgm}"
 geninvitepgm="gen_invite"
 geninviteltscript="${ltprefix}${geninvitepgm}"
 lxccopydirscript="lxc_copy_dir.sh"
+lxccopyfilescript="lxc_copy_file.sh"
 lxcrunscript="lxc_run.sh"
 #   Container Name
 containername="${testcase}_${nodename}"
@@ -88,5 +89,12 @@ ${blackboxutilpath}/${lxcrunscript} "rm ${containerlogpath}/*.log" ${containerna
 ${blackboxutilpath}/${lxccopydirscript} ${mirrorfolderpath} ${containername} ${containerdstpath}
 #   Kill any running instances of the Node Simulation Program
 ${blackboxutilpath}/${lxcrunscript} "${containerdstpath}/${nodestepscript} ${ltprefix}${nodesimpgm} SIGTERM 2>/dev/null" ${containername}
+#   Restore the 'interfaces' file in the Container
+echo "auto lo" > interfaces
+echo "iface lo inet loopback" >> interfaces
+echo "" >> interfaces
+echo "auto eth0" >> interfaces
+echo "iface eth0 inet dhcp" >> interfaces
+${blackboxutilpath}/${lxccopyfilescript} interfaces ${containername} /etc/network/interfaces
 
 set +x
